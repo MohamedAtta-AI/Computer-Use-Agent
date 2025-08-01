@@ -1,0 +1,35 @@
+# Core framework
+fastapi
+uvicorn[standard]
+
+# WebSockets & SSE
+websockets
+sse-starlette
+
+# Database layer
+sqlalchemy
+alembic
+asyncpg
+psycopg[binary]
+
+# Caching / queues
+redis
+
+# Data validation & settings
+pydantic
+pydantic-settings
+
+# Multipart forms & auth
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+
+# HTTP client, file I/O, env vars
+httpx
+aiofiles
+python-dotenv
+
+# AI client
+anthropic
+
+psycopg2
