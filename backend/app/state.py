@@ -1,28 +1,21 @@
 """
-Central place to keep the in-memory session store so we avoid circular imports.
+In-memory queues only.
+
+All durable data (sessions, messages) now lives in SQLite via
+`backend/app/db.py`.  Each active session still needs an asyncio.Queue to
+push real-time updates to any connected SSE clients, but these queues are
+*not* persisted.
 """
 
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict
 
-from .schemas import Message
-
-
-class _SessionState:
-    def __init__(self) -> None:
-        self.messages: List[Message] = []
-        self.queue: asyncio.Queue[Message] = asyncio.Queue()
+# one queue per session id
+_QUEUES: Dict[str, asyncio.Queue] = {}
 
 
-_SESSIONS: Dict[str, _SessionState] = {}
-
-
-def create_session() -> str:
-    import uuid
-    session_id = str(uuid.uuid4())
-    _SESSIONS[session_id] = _SessionState()
-    return session_id
-
-
-def get_session_state(session_id: str) -> Optional[_SessionState]:
-    return _SESSIONS.get(session_id)
+def queue_for(session_id: str) -> asyncio.Queue:
+    """
+    Return the per-session asyncio.Queue, creating it if necessary.
+    """
+    return _QUEUES.setdefault(session_id, asyncio.Queue())
