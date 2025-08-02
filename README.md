@@ -1,5 +1,5 @@
 # Computer Use Agent
-
+**Author: Mohamed Atta**  
 A scalable backend system for computer use agent session management, similar to OpenAI Operator. This project provides a FastAPI backend with real-time streaming, VNC integration, and a modern React frontend for managing AI-powered computer automation sessions.
 
 ## 🚀 Features
@@ -33,6 +33,33 @@ A scalable backend system for computer use agent session management, similar to 
 - **Nginx**: Static file serving and API proxying
 - **Xvfb**: Virtual framebuffer for headless desktop
 - **tint2**: Lightweight window manager
+
+## 🏗️ Project Structure
+
+```
+Computer-Use-Agent/
+├── backend/                    # FastAPI backend
+│   ├── app/                   # Application code
+│   │   ├── main.py           # FastAPI app and routes
+│   │   ├── compute_runner.py # Computer use session runner
+│   │   ├── db.py             # Database models and setup
+│   │   ├── schemas.py        # Pydantic schemas
+│   │   └── computer_use_demo/ # Anthropic computer use tools
+│   ├── image/                # VNC and desktop setup
+│   ├── requirements.txt      # Python dependencies
+│   └── Dockerfile           # Backend container
+├── frontend/                  # React frontend
+│   ├── src/                  # Source code
+│   │   ├── components/       # React components
+│   │   ├── pages/           # Page components
+│   │   ├── lib/             # Utilities and API client
+│   │   └── App.tsx          # Main app component
+│   ├── package.json         # Node.js dependencies
+│   └── Dockerfile           # Frontend container
+├── docker-compose.yml        # Service orchestration
+├── .env                      # Environment variables
+└── README.md                # This file
+```
 
 ## 📋 Prerequisites
 
@@ -156,72 +183,6 @@ npm run dev
 2. The AI agent can interact with the desktop environment
 3. You can also connect directly via http://localhost:6080
 
-## 🔍 Troubleshooting
-
-### Common Issues
-
-#### Backend Health Check Failing
-```bash
-# Check backend logs
-docker-compose logs backend
-
-# Verify environment variables
-docker exec backend env | grep ANTHROPIC
-
-# Test API manually
-curl http://localhost:8000/api/healthz
-```
-
-#### Frontend Build Issues
-```bash
-# Clean and rebuild frontend
-docker-compose build frontend --no-cache
-
-# Check for rollup dependency issues
-# The project includes fixes for npm/rollup compatibility
-```
-
-#### VNC Connection Issues
-```bash
-# Check VNC service status
-docker exec backend ps aux | grep vnc
-
-# Verify noVNC is running
-curl http://localhost:6080
-```
-
-### Performance Optimization
-- Increase Docker memory allocation for VNC desktop
-- Use SSD storage for better database performance
-- Consider using a reverse proxy for production deployment
-
-## 🏗️ Project Structure
-
-```
-Computer-Use-Agent/
-├── backend/                    # FastAPI backend
-│   ├── app/                   # Application code
-│   │   ├── main.py           # FastAPI app and routes
-│   │   ├── compute_runner.py # Computer use session runner
-│   │   ├── db.py             # Database models and setup
-│   │   ├── schemas.py        # Pydantic schemas
-│   │   └── computer_use_demo/ # Anthropic computer use tools
-│   ├── image/                # VNC and desktop setup
-│   ├── requirements.txt      # Python dependencies
-│   └── Dockerfile           # Backend container
-├── frontend/                  # React frontend
-│   ├── src/                  # Source code
-│   │   ├── components/       # React components
-│   │   ├── pages/           # Page components
-│   │   ├── lib/             # Utilities and API client
-│   │   └── App.tsx          # Main app component
-│   ├── package.json         # Node.js dependencies
-│   └── Dockerfile           # Frontend container
-├── docker-compose.yml        # Service orchestration
-├── .env                      # Environment variables
-└── README.md                # This file
-```
-
 ## 🔒 Security Considerations
 
 - **API Keys**: Store sensitive keys in environment variables
@@ -268,34 +229,6 @@ For production, consider migrating from SQLite to PostgreSQL:
 # Update backend configuration for PostgreSQL
 # Run database migrations
 ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [Anthropic](https://anthropic.com/) for the computer use tools
-- [noVNC](https://novnc.com/) for VNC web client
-- [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
-- [React](https://reactjs.org/) for the frontend framework
-
-## 📞 Support
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Review the logs: `docker-compose logs`
-3. Open an issue on GitHub
-4. Check the API documentation at http://localhost:8000/docs
-
 ---
 
 **Note**: This project is designed for development and testing. For production use, implement proper security measures, monitoring, and scaling strategies. 
