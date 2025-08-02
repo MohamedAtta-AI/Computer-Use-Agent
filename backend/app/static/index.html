@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Claude Computer-Use Demo (Minimal UI)</title>
+<style>
+body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+#sidebar { width: 220px; border-right: 1px solid #ccc; padding: .5em; box-sizing: border-box; }
+#chat    { flex: 1; display: flex; flex-direction: column; }
+#log     { flex: 1; overflow-y: auto; padding: 1em; white-space: pre-wrap; }
+#input   { width: 100%; box-sizing: border-box; }
+.session { cursor: pointer; padding: 4px; border-radius: 4px; }
+.session:hover { background:#eee; }
+.session.active { background:#cce; font-weight:600; }
+</style>
+</head>
+<body>
+  <div id="sidebar">
+    <button id="newBtn">+ New session</button>
+    <h4>Sessions</h4>
+    <div id="sessions"></div>
+  </div>
+
+  <div id="chat">
+    <div id="log"></div>
+    <textarea id="input" rows="3" placeholder="Type message & hit Ctrl+Enter…"></textarea>
+  </div>
+
+<script>
+const ORIGIN = `${location.protocol}//${location.host}`;
+
+async function refreshSessions() {
+  const res  = await fetch(`${ORIGIN}/sessions`);
+  const data = await res.json();
+  const box  = document.getElementById('sessions');
+  box.innerHTML = '';
+  Object.keys(data).forEach(id => {
+    const div = document.createElement('div');
+    div.textContent = `${id.slice(0,8)}… (${data[id]})`;
+    div.className   = 'session' + (id === current ? ' active' : '');
+    div.onclick     = () => openSession(id);
+    box.appendChild(div);
+  });
+}
+
+let current = null, es = null;
+
+async function newSession() {
+  /* ★ use POST, not GET */
+  const res = await fetch(`${ORIGIN}/sessions`, { method: 'POST' });   /* ★ */
+  const { session_id } = await res.json();
+  await refreshSessions();
+  openSession(session_id);
+}
+
+async function openSession(id) {
+  if (current === id) return;
+  current = id;
+
+  document.querySelectorAll('.session').forEach(el => {
+    el.classList.toggle('active', el.textContent.startsWith(id.slice(0,8)));
+  });
+
+  document.getElementById('log').textContent = '';
+
+  if (es) es.close();
+  es = new EventSource(`/sessions/${id}/stream`);                       /* ★ (unchanged) */
+  es.onmessage = ev => {
+    const msg = JSON.parse(ev.data);
+    const log = document.getElementById('log');
+    log.textContent += `> ${msg.role}: ${msg.content}\n`;
+    log.scrollTop = log.scrollHeight;
+  };
+}
+
+async function sendMessage(txt) {
+  if (!current) return alert('Create or select a session first!');
+  await fetch(`/sessions/${current}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ role:'user', content: txt })
+  });
+}
+
+document.getElementById('newBtn').onclick = newSession;
+document.getElementById('input').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && ev.ctrlKey) {
+    const txt = ev.target.value.trim();
+    if (txt) sendMessage(txt);
+    ev.target.value = '';
+  }
+});
+
+refreshSessions();    /* initial sidebar population */
+</script>
+</body>
+</html>
