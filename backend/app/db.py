@@ -33,7 +33,8 @@ from sqlalchemy.orm import (
 DATABASE_URL = os.getenv(
     "DATABASE_URL", "sqlite+aiosqlite:///./data.db"
 )  # persisted in project root
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+ECHO_SQL = os.getenv("DEBUG", "").lower() in {"1", "true", "yes", "on"}
+engine = create_async_engine(DATABASE_URL, echo=ECHO_SQL, future=True)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 # --------------------------------------------------------------------------- #
