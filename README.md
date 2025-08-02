@@ -230,5 +230,3 @@ For production, consider migrating from SQLite to PostgreSQL:
 # Run database migrations
 ```
 ---
-
-**Note**: This project is designed for development and testing. For production use, implement proper security measures, monitoring, and scaling strategies. 
