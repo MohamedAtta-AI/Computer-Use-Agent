@@ -13,3 +13,6 @@ def init_db():
 def get_session():
     with Session(engine) as session:
         yield session
+
+# Used for manual sessions (e.g., background tasks)
+SessionLocal = lambda: Session(engine)

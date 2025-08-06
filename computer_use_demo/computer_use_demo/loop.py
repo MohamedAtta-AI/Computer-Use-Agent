@@ -35,6 +35,7 @@ from .tools import (
     ToolResult,
     ToolVersion,
 )
+from backend.api.v1.stream import publish_task_event
 
 PROMPT_CACHING_BETA_FLAG = "prompt-caching-2024-07-31"
 
@@ -44,6 +45,11 @@ class APIProvider(StrEnum):
     BEDROCK = "bedrock"
     VERTEX = "vertex"
 
+
+if platform.system() == "Windows":
+    today_str = datetime.today().strftime('%A, %B %#d, %Y')  # Windows uses %#d
+else:
+    today_str = datetime.today().strftime('%A, %B %-d, %Y')
 
 # This system prompt is optimized for the Docker environment in this repository and
 # specific tool combinations enabled.
@@ -58,7 +64,7 @@ SYSTEM_PROMPT = f"""<SYSTEM_CAPABILITY>
 * When using your bash tool with commands that are expected to output very large quantities of text, redirect into a tmp file and use str_replace_based_edit_tool or `grep -n -B <lines before> -A <lines after> <query> <filename>` to confirm output.
 * When viewing a page it can be helpful to zoom out so that you can see everything on the page.  Either that, or make sure you scroll down to see everything before deciding something isn't available.
 * When using your computer function calls, they take a while to run and send back to you.  Where possible/feasible, try to chain multiple of these calls all into one function calls request.
-* The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+* The current date is {today_str}.
 </SYSTEM_CAPABILITY>
 
 <IMPORTANT>
