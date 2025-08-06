@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 import asyncio
 import json
 from typing import AsyncGenerator
+from backend.api.websockets import manager
 
 router = APIRouter(prefix="/tasks", tags=["Streaming"])
 
@@ -10,8 +11,15 @@ router = APIRouter(prefix="/tasks", tags=["Streaming"])
 task_streams: dict[str, asyncio.Queue] = {}
 
 def publish_task_event(task_id: str, event: dict):
-    if task_id in task_streams:
-        task_streams[task_id].put_nowait(event)
+    try:
+        if task_id in task_streams:
+            task_streams[task_id].put_nowait(event)
+        
+        # Also broadcast via WebSocket
+        asyncio.create_task(manager.broadcast_to_task(event, task_id))
+    except Exception as e:
+        print(f"Error publishing task event: {e}")
+        # Don't let WebSocket errors break the main request
 
 async def event_stream(task_id: str) -> AsyncGenerator[str, None]:
     queue = asyncio.Queue()
