@@ -1,24 +1,8 @@
 from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy.engine import Engine
-from sqlalchemy import event
+from backend.core.config import get_settings
 
-# if PRODUCTION:
-#     db_url = os.getenv("DATABASE_URL")
-# else:
-#     db_file_name = "database.db"
-#     db_url = f"sqlite:///{db_file_name}"
-
-db_url = "sqlite:///database.db"
-
-connect_args = {"check_same_thread": False}
-engine = create_engine(db_url, echo=True, connect_args=connect_args)
-
-# Enable foreign keys in SQLite
-@event.listens_for(Engine, "connect")
-def on_connect(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys = ON;")
-    cursor.close()
+settings = get_settings()
+engine = create_engine(settings.db_url, echo=settings.production)
 
 
 def init_db():

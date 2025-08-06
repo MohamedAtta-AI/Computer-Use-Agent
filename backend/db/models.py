@@ -1,28 +1,17 @@
-from sqlmodel import SQLModel, Field, Session, create_engine
+from sqlmodel import SQLModel, Field
+from sqlalchemy.dialects.postgresql import JSONB
+from uuid import UUID, uuid4
+from datetime import datetime
 
+class Message(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    task_id: UUID = Field(foreign_key="task.id")
+    role: str
+    content: str
+    ordering: int
+    created_at: datetime = Field(default_factory=datetime.now())
 
-
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
-
-
-if __name__ == "__main__":
-    create_db_and_tables()
-
-
-class SessionBase(SQLModel):
-    __tablename__ = "sessions"
-    id = Column(UUID, primary_key=True, default=uuid4)
-    title = Column(String(255))
-    status = Column(String(50), default="active")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    messages = relationship("Message", back_populates="session")
-
-class Message(Base):
-    __tablename__ = "messages"
-    id = Column(UUID, primary_key=True, default=uuid4)
-    session_id = Column(UUID, ForeignKey("sessions.id"))
-    role = Column(String(16))  # user, assistant, system
-    content = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+class Task(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    title: str
+    status: str = Field(default="active")
