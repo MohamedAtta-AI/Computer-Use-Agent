@@ -42,7 +42,7 @@ export const useTasks = () => {
     try {
       const backendTask = await taskAPI.create({
         title: taskData.title,
-        status: taskData.status || 'active',
+        status: taskData.status || 'inactive',
       });
       const newTask = convertBackendTask(backendTask);
       setTasks(prev => [newTask, ...prev]);
@@ -66,6 +66,22 @@ export const useTasks = () => {
       console.error('Error updating task:', err);
     }
   }, []);
+
+  // Delete task
+  const deleteTask = useCallback(async (id: string) => {
+    try {
+      await taskAPI.delete(id);
+      setTasks(prev => prev.filter(task => task.id !== id));
+      
+      // If the deleted task was selected, clear the selection
+      if (selectedTaskId === id) {
+        setSelectedTaskId(null);
+      }
+    } catch (err) {
+      setError('Failed to delete task');
+      console.error('Error deleting task:', err);
+    }
+  }, [selectedTaskId]);
 
   // Start task execution
   const startTask = useCallback(async (id: string) => {
@@ -98,14 +114,21 @@ export const useTasks = () => {
 
   // Handle real-time events
   const handleRealTimeEvent = useCallback((taskId: string, event: any) => {
+    console.log(`Real-time event for task ${taskId}:`, event);
+    
     // Update task status based on events
     if (event.type === 'message' && event.role === 'assistant') {
       // Task is active when receiving assistant messages
+      updateTaskStatus(taskId, 'active');
+    } else if (event.type === 'event' && event.kind) {
+      // Task is running when computer tools are used
       updateTaskStatus(taskId, 'running');
+    } else if (event.type === 'error') {
+      // Task failed when error occurs
+      updateTaskStatus(taskId, 'failed');
     }
     
     // You can add more event handling logic here
-    console.log(`Real-time event for task ${taskId}:`, event);
   }, [updateTaskStatus]);
 
   // Initialize WebSocket connection only once on mount
@@ -157,6 +180,7 @@ export const useTasks = () => {
     tasks, 
     addTask, 
     updateTaskStatus, 
+    deleteTask,
     startTask,
     loading,
     error,

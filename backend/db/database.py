@@ -6,7 +6,7 @@ engine = create_engine(settings.db_url, echo=(not settings.production))
 
 
 def init_db():
-    # SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
 
 

@@ -47,7 +47,7 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'completed' | 'running' | 'failed' | 'active';
+  status: 'inactive' | 'active' | 'completed' | 'running' | 'failed';
   timestamp: string;
   duration?: string;
 }

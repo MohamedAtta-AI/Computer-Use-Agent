@@ -13,6 +13,7 @@ function App() {
     tasks, 
     addTask, 
     updateTaskStatus, 
+    deleteTask,
     startTask,
     loading: tasksLoading,
     error: tasksError,
@@ -47,7 +48,7 @@ function App() {
       const newTask = await addTask({
         title: 'New Agent Task',
         description: 'Task created from UI',
-        status: 'active',
+        status: 'inactive',
         timestamp: 'just now'
       });
       
@@ -67,7 +68,7 @@ function App() {
       addTask({
         title: 'Task from Prompt',
         description: prompt,
-        status: 'active',
+        status: 'inactive',
         timestamp: 'just now'
       }).then(newTask => {
         setSelectedTaskId(newTask.id);
@@ -87,6 +88,15 @@ function App() {
     setTasksSelectedId(task.id);
     
     console.log('Task selection completed');
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      console.log('Task deleted successfully:', taskId);
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    }
   };
 
   const handleFileUpload = (uploadedFiles: File[]) => {
@@ -110,6 +120,7 @@ function App() {
         loading={tasksLoading}
         error={tasksError}
         selectedTaskId={selectedTaskId}
+        onTaskDelete={handleTaskDelete}
       />
       
       <VNCConnection />

@@ -9,6 +9,7 @@ import { Task } from '../../types';
 interface SidebarProps {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
+  onTaskDelete?: (taskId: string) => void;
   onNewTask?: () => void;
   onPromptSelect?: (prompt: string) => void;
   loading?: boolean;
@@ -19,6 +20,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   tasks,
   onTaskClick,
+  onTaskDelete,
   onNewTask,
   onPromptSelect,
   loading = false,
@@ -43,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           loading={loading}
           error={error}
           selectedTaskId={selectedTaskId}
+          onTaskDelete={onTaskDelete}
         />
         <PromptGallery onPromptSelect={onPromptSelect} />
       </div>

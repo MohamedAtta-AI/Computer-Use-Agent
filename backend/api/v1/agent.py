@@ -89,6 +89,14 @@ async def run_agent_loop(task_id: str):
     try:
         print(f"Starting agent loop for task {task_id}")
         
+        # Update task status to 'active' when agent starts
+        task = session.get(Task, UUID(task_id))
+        if task:
+            task.status = 'active'
+            session.add(task)
+            session.commit()
+            print(f"Task {task_id} status updated to 'active'")
+        
         # 1) Load any prior messages and convert them for Claude's input
         raw = session.exec(select(Message).where(Message.task_id == task_id).order_by(Message.ordering)).all()
         
@@ -152,6 +160,14 @@ async def run_agent_loop(task_id: str):
         async def tool_output_callback(tool_result, tool_use_id):
             nonlocal ordering
             try:
+                # Update task status to 'running' when computer tools are used
+                task = session.get(Task, UUID(task_id))
+                if task and task.status != 'running':
+                    task.status = 'running'
+                    session.add(task)
+                    session.commit()
+                    print(f"Task {task_id} status updated to 'running' (computer tools used)")
+                
                 # 1. Save screenshot if exists
                 if tool_result.base64_image:
                     url = save_screenshot_and_return_url(tool_result.base64_image)
@@ -227,8 +243,24 @@ async def run_agent_loop(task_id: str):
         )
         print(f"Agent loop completed for task {task_id}")
         
+        # Update task status to 'completed' when agent finishes
+        task = session.get(Task, UUID(task_id))
+        if task:
+            task.status = 'completed'
+            session.add(task)
+            session.commit()
+            print(f"Task {task_id} status updated to 'completed'")
+        
     except Exception as e:
         print(f"Error in run_agent_loop for task {task_id}: {e}")
+        # Update task status to 'failed' on error
+        task = session.get(Task, UUID(task_id))
+        if task:
+            task.status = 'failed'
+            session.add(task)
+            session.commit()
+            print(f"Task {task_id} status updated to 'failed'")
+        
         # Publish error event
         publish_task_event(task_id, {
             "type": "error",
