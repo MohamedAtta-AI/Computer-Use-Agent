@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChatMessage, BackendMessage, RealTimeEvent } from '../types';
-import { messageAPI, agentAPI } from '../services/api';
+import { messageAPI, agentAPI, taskAPI } from '../services/api';
 import { websocketService } from '../services/websocket';
 import { sseService } from '../services/sse';
 
@@ -9,8 +9,8 @@ export const useChat = (taskId?: string) => {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agentRunning, setAgentRunning] = useState(false);
 
-  // Helper function to extract text content from event content
   const extractTextContent = (content: any): string => {
     if (typeof content === 'string') {
       return content;
@@ -22,13 +22,11 @@ export const useChat = (taskId?: string) => {
       if (content.content) {
         return extractTextContent(content.content);
       }
-      // If it's an object but no text property, stringify it
       return JSON.stringify(content);
     }
     return String(content);
   };
 
-  // Convert backend message to frontend message
   const convertBackendMessage = (backendMessage: BackendMessage): ChatMessage => {
     return {
       id: backendMessage.id,
@@ -42,58 +40,47 @@ export const useChat = (taskId?: string) => {
     };
   };
 
-  // Load messages for a task
-  const loadMessages = useCallback(async (taskId: string) => {
-    if (!taskId) return;
-    
-    try {
-      setLoading(true);
-      const backendMessages = await messageAPI.getByTask(taskId);
-      const frontendMessages = backendMessages
-        .sort((a, b) => a.ordering - b.ordering)
-        .map(convertBackendMessage);
-      setMessages(frontendMessages);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load messages');
-      console.error('Error loading messages:', err);
-    } finally {
-      setLoading(false);
+  // Load messages for the current task
+  useEffect(() => {
+    if (!taskId) {
+      setMessages([]);
+      return;
     }
-  }, []);
 
-  // Send message to backend
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || !taskId) return;
-
-    try {
-      setLoading(true);
-      
-      // Create user message
-      const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content,
-        timestamp: new Date().toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
+    const loadMessages = async () => {
+      try {
+        setLoading(true);
+        const backendMessages = await messageAPI.getByTask(taskId);
+        const chatMessages = backendMessages.map(convertBackendMessage);
+        setMessages(chatMessages);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load messages');
+        console.error('Error loading messages:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-      setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
+    loadMessages();
+  }, [taskId]);
 
-      // Send to backend
-      await agentAPI.postMessage(taskId, { text: content });
+  // Send message and start agent
+  const sendMessage = useCallback(async (content: string) => {
+    if (!taskId || !content.trim() || loading) return;
 
-      // Subscribe to real-time updates for this task
-      if (websocketService.isConnected()) {
-        websocketService.subscribeToTask(taskId);
-      }
+    try {
+      setLoading(true);
+      setError(null);
+      setAgentRunning(true);
 
-      // Connect SSE for real-time updates
-      sseService.connect(taskId, {
+      // Clear input immediately
+      setInputValue('');
+
+      // Connect SSE for real-time updates BEFORE sending message
+      await sseService.connect(taskId, {
         onMessage: (event: any) => {
+          console.log('SSE message received:', event);
           handleRealTimeEvent(event as RealTimeEvent);
         },
         onError: (error) => {
@@ -101,11 +88,36 @@ export const useChat = (taskId?: string) => {
         }
       });
 
+      // Subscribe to WebSocket updates
+      if (websocketService.isConnected()) {
+        websocketService.subscribeToTask(taskId);
+      }
+
+      // Send to backend AFTER establishing connections
+      await agentAPI.postMessage(taskId, { text: content });
+
     } catch (err) {
       setError('Failed to send message');
       console.error('Error sending message:', err);
+      setAgentRunning(false);
     } finally {
       setLoading(false);
+    }
+  }, [taskId, loading]);
+
+  // Stop agent
+  const stopAgent = useCallback(async () => {
+    if (!taskId) return;
+
+    try {
+      console.log('Attempting to stop agent for task:', taskId);
+      await agentAPI.stop(taskId);
+      setAgentRunning(false);
+      console.log('Stop signal sent to agent');
+    } catch (err) {
+      console.error('Error stopping agent:', err);
+      // Even if stop fails, set agent as not running
+      setAgentRunning(false);
     }
   }, [taskId]);
 
@@ -135,6 +147,11 @@ export const useChat = (taskId?: string) => {
           console.log('New messages array:', newMessages);
           return newMessages;
         });
+        
+        // If this is an assistant message, the agent is running
+        if (event.role === 'assistant') {
+          setAgentRunning(true);
+        }
         break;
 
       case 'event':
@@ -151,6 +168,7 @@ export const useChat = (taskId?: string) => {
           payload: event.payload,
         };
         setMessages(prev => [...prev, eventMessage]);
+        setAgentRunning(true);
         break;
 
       case 'screenshot':
@@ -167,6 +185,7 @@ export const useChat = (taskId?: string) => {
           sha256: event.sha256,
         };
         setMessages(prev => [...prev, screenshotMessage]);
+        setAgentRunning(true);
         break;
 
       case 'tool_result':
@@ -181,12 +200,13 @@ export const useChat = (taskId?: string) => {
           ordering: event.ordering,
         };
         setMessages(prev => [...prev, toolResultMessage]);
+        setAgentRunning(true);
         break;
 
       case 'error':
         const errorMessage: ChatMessage = {
           id: Date.now().toString(),
-        type: 'assistant',
+          type: 'assistant',
           content: `Error: ${extractTextContent(event.content)}`,
           timestamp: new Date().toLocaleTimeString([], { 
             hour: '2-digit', 
@@ -196,6 +216,12 @@ export const useChat = (taskId?: string) => {
         };
         setMessages(prev => [...prev, errorMessage]);
         setError(extractTextContent(event.content));
+        setAgentRunning(false);
+        break;
+
+      case 'completion':
+        // Agent has completed successfully
+        setAgentRunning(false);
         break;
 
       default:
@@ -203,35 +229,38 @@ export const useChat = (taskId?: string) => {
     }
   }, []);
 
-  // Load messages when taskId changes
-  useEffect(() => {
-    console.log('useChat: taskId changed to:', taskId);
-    console.log('useChat: SSE connected tasks:', sseService.getConnectedTasks());
-    
-    if (taskId) {
-      console.log('useChat: Loading messages for task:', taskId);
-      loadMessages(taskId);
-    } else {
-      console.log('useChat: Clearing messages (no taskId)');
-      setMessages([]);
-    }
-  }, [taskId, loadMessages]);
-
-  // Cleanup SSE connection only on component unmount, not on taskId changes
+  // Cleanup SSE connection on unmount
   useEffect(() => {
     return () => {
-      // Only disconnect when the component is unmounting, not when taskId changes
-      // This prevents the connection from being closed when switching tasks
+      if (taskId) {
+        sseService.disconnectTask(taskId);
+      }
     };
-  }, []); // Empty dependency array - only runs on unmount
+  }, []);
 
-  return { 
-    messages, 
-    inputValue, 
-    setInputValue, 
+  return {
+    messages,
+    inputValue,
+    setInputValue,
     sendMessage,
+    stopAgent,
     loading,
     error,
-    refreshMessages: () => taskId ? loadMessages(taskId) : Promise.resolve()
+    agentRunning,
+    refreshMessages: () => {
+      // Trigger reload of messages
+      if (taskId) {
+        const loadMessages = async () => {
+          try {
+            const backendMessages = await messageAPI.getByTask(taskId);
+            const chatMessages = backendMessages.map(convertBackendMessage);
+            setMessages(chatMessages);
+          } catch (err) {
+            console.error('Error refreshing messages:', err);
+          }
+        };
+        loadMessages();
+      }
+    }
   };
 };

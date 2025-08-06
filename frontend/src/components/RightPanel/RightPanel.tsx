@@ -9,6 +9,7 @@ interface RightPanelProps {
   inputValue: string;
   onInputChange: (value: string) => void;
   onSendMessage: (message: string) => void;
+  onStopAgent?: () => void;
   onFileUpload?: (files: File[]) => void;
   onFileClick?: (file: FileItem) => void;
   onFileDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -18,6 +19,7 @@ interface RightPanelProps {
   uploading?: boolean;
   filesError?: string | null;
   selectedTaskId?: string | null;
+  agentRunning?: boolean;
 }
 
 export const RightPanel: React.FC<RightPanelProps> = ({
@@ -26,6 +28,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   inputValue,
   onInputChange,
   onSendMessage,
+  onStopAgent,
   onFileUpload,
   onFileClick,
   onFileDrop,
@@ -34,7 +37,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   error = null,
   uploading = false,
   filesError = null,
-  selectedTaskId = null
+  selectedTaskId = null,
+  agentRunning = false
 }) => {
   return (
     <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-screen">
@@ -43,9 +47,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         inputValue={inputValue}
         onInputChange={onInputChange}
         onSendMessage={onSendMessage}
+        onStopAgent={onStopAgent}
         loading={loading}
         error={error}
         selectedTaskId={selectedTaskId}
+        agentRunning={agentRunning}
       />
       <div className="border-t border-gray-200">
         <FileManagement

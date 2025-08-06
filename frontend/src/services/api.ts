@@ -203,8 +203,18 @@ export const mediaAPI = {
 
 // Agent API
 export const agentAPI = {
-  postMessage: async (taskId: string, message: any): Promise<void> => {
-    await api.post(`/tasks/${taskId}/message`, message);
+  postMessage: async (taskId: string, data: { text: string }): Promise<void> => {
+    await api.post(`/agent/${taskId}/message`, data);
+  },
+
+  start: async (taskId: string): Promise<{ detail: string }> => {
+    const response = await api.post(`/agent/${taskId}/start`);
+    return response.data;
+  },
+
+  stop: async (taskId: string): Promise<{ detail: string }> => {
+    const response = await api.post(`/agent/${taskId}/stop`);
+    return response.data;
   },
 };
 

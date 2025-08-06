@@ -16,7 +16,6 @@ export const useTasks = () => {
       id: backendTask.id,
       title: backendTask.title,
       description: `Task created on ${new Date(backendTask.created_at).toLocaleDateString()}`,
-      status: backendTask.status as Task['status'],
       timestamp: new Date(backendTask.created_at).toLocaleString(),
     };
   };
@@ -42,7 +41,6 @@ export const useTasks = () => {
     try {
       const backendTask = await taskAPI.create({
         title: taskData.title,
-        status: taskData.status || 'inactive',
       });
       const newTask = convertBackendTask(backendTask);
       setTasks(prev => [newTask, ...prev]);
@@ -51,19 +49,6 @@ export const useTasks = () => {
       setError('Failed to create task');
       console.error('Error creating task:', err);
       throw err;
-    }
-  }, []);
-
-  // Update task status
-  const updateTaskStatus = useCallback(async (id: string, status: Task['status']) => {
-    try {
-      await taskAPI.update(id, { status });
-      setTasks(prev => prev.map(task => 
-        task.id === id ? { ...task, status } : task
-      ));
-    } catch (err) {
-      setError('Failed to update task');
-      console.error('Error updating task:', err);
     }
   }, []);
 
@@ -87,7 +72,6 @@ export const useTasks = () => {
   const startTask = useCallback(async (id: string) => {
     try {
       await taskAPI.start(id);
-      await updateTaskStatus(id, 'running');
       
       // Subscribe to real-time updates for this task
       if (websocketService.isConnected()) {
@@ -110,26 +94,13 @@ export const useTasks = () => {
       setError('Failed to start task');
       console.error('Error starting task:', err);
     }
-  }, [updateTaskStatus]);
+  }, []);
 
   // Handle real-time events
   const handleRealTimeEvent = useCallback((taskId: string, event: any) => {
     console.log(`Real-time event for task ${taskId}:`, event);
-    
-    // Update task status based on events
-    if (event.type === 'message' && event.role === 'assistant') {
-      // Task is active when receiving assistant messages
-      updateTaskStatus(taskId, 'active');
-    } else if (event.type === 'event' && event.kind) {
-      // Task is running when computer tools are used
-      updateTaskStatus(taskId, 'running');
-    } else if (event.type === 'error') {
-      // Task failed when error occurs
-      updateTaskStatus(taskId, 'failed');
-    }
-    
     // You can add more event handling logic here
-  }, [updateTaskStatus]);
+  }, []);
 
   // Initialize WebSocket connection only once on mount
   useEffect(() => {
@@ -179,7 +150,6 @@ export const useTasks = () => {
   return { 
     tasks, 
     addTask, 
-    updateTaskStatus, 
     deleteTask,
     startTask,
     loading,

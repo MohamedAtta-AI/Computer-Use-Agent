@@ -47,7 +47,6 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'inactive' | 'active' | 'completed' | 'running' | 'failed';
   timestamp: string;
   duration?: string;
 }
@@ -81,7 +80,7 @@ export interface VNCConnectionProps {
 
 // Real-time Event Types
 export interface RealTimeEvent {
-  type: 'message' | 'event' | 'screenshot' | 'tool_result' | 'error';
+  type: 'message' | 'event' | 'screenshot' | 'tool_result' | 'error' | 'completion';
   role?: string;
   content?: any;
   ordering?: number;

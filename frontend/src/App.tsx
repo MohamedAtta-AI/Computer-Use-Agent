@@ -12,7 +12,6 @@ function App() {
   const { 
     tasks, 
     addTask, 
-    updateTaskStatus, 
     deleteTask,
     startTask,
     loading: tasksLoading,
@@ -27,8 +26,10 @@ function App() {
     inputValue, 
     setInputValue, 
     sendMessage,
+    stopAgent,
     loading: chatLoading,
     error: chatError,
+    agentRunning,
     refreshMessages
   } = useChat(selectedTaskId || undefined);
 
@@ -48,7 +49,6 @@ function App() {
       const newTask = await addTask({
         title: 'New Agent Task',
         description: 'Task created from UI',
-        status: 'inactive',
         timestamp: 'just now'
       });
       
@@ -68,7 +68,6 @@ function App() {
       addTask({
         title: 'Task from Prompt',
         description: prompt,
-        status: 'inactive',
         timestamp: 'just now'
       }).then(newTask => {
         setSelectedTaskId(newTask.id);
@@ -131,6 +130,7 @@ function App() {
         inputValue={inputValue}
         onInputChange={setInputValue}
         onSendMessage={sendMessage}
+        onStopAgent={stopAgent}
         onFileUpload={handleFileUpload}
         onFileClick={handleFileClick}
         onFileDrop={handleDrop}
@@ -140,6 +140,7 @@ function App() {
         uploading={filesUploading}
         filesError={filesError}
         selectedTaskId={selectedTaskId}
+        agentRunning={agentRunning}
       />
     </div>
   );

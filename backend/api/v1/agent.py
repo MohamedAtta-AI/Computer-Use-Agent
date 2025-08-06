@@ -11,7 +11,10 @@ from backend.api.v1.stream import publish_task_event
 from backend.db import get_session, Task, Message, Event, Screenshot
 from backend.utils import save_screenshot_and_return_url, compute_sha256
 
-router = APIRouter(prefix="/tasks", tags=["Agent"])
+router = APIRouter(prefix="/agent", tags=["Agent"])
+
+# Global variable to track running tasks and their stop flags
+running_tasks = {}
 
 class MessageRequest(BaseModel):
     text: str
@@ -78,6 +81,34 @@ def start_task(
     return {"detail": "Task started"}
 
 
+@router.post("/{task_id}/stop", status_code=202)
+def stop_task(
+    task_id: UUID,
+    session: Session = Depends(get_session),
+):
+    task_id_str = str(task_id)
+    print(f"Stop request received for task {task_id_str}")
+    print(f"Currently running tasks: {list(running_tasks.keys())}")
+    
+    if task_id_str in running_tasks:
+        # Set the stop flag
+        running_tasks[task_id_str] = True
+        print(f"Stop flag set for task {task_id_str}")
+        
+        # Publish stop event
+        publish_task_event(task_id_str, {
+            "type": "completion",
+            "content": "Agent stopped by user",
+            "ordering": 1,
+        })
+        print(f"Stop event published for task {task_id_str}")
+        
+        return {"detail": "Stop signal sent to task"}
+    else:
+        print(f"Task {task_id_str} not found in running tasks")
+        raise HTTPException(404, "Task not running")
+
+
 async def run_agent_loop(task_id: str):
     # Create a fresh DB session (cannot reuse the request-scoped one)
     from backend.db import SessionLocal
@@ -85,6 +116,10 @@ async def run_agent_loop(task_id: str):
     
     session = SessionLocal()
     settings = get_settings()
+    
+    # Register this task as running
+    running_tasks[task_id] = False
+    print(f"Task {task_id} registered as running")
     
     try:
         print(f"Starting agent loop for task {task_id}")
@@ -125,6 +160,11 @@ async def run_agent_loop(task_id: str):
         def output_callback(block):
             nonlocal ordering
             try:
+                # Check if task should be stopped
+                if running_tasks.get(task_id, False):
+                    print(f"Task {task_id} stop flag detected, stopping output")
+                    return
+                
                 # Extract text content from the block
                 if isinstance(block, dict):
                     if block.get("type") == "text":
@@ -160,6 +200,11 @@ async def run_agent_loop(task_id: str):
         async def tool_output_callback(tool_result, tool_use_id):
             nonlocal ordering
             try:
+                # Check if task should be stopped
+                if running_tasks.get(task_id, False):
+                    print(f"Task {task_id} stop flag detected, stopping tool execution")
+                    return
+                
                 # Update task status to 'running' when computer tools are used
                 task = session.get(Task, UUID(task_id))
                 if task and task.status != 'running':
@@ -230,6 +275,12 @@ async def run_agent_loop(task_id: str):
         # 3) Run the Claude agent loop
         print(f"Running sampling loop with {len(messages)} messages")
         print(f"Message format: {messages}")
+        
+        # Check if task should be stopped before starting
+        if running_tasks.get(task_id, False):
+            print(f"Task {task_id} stop flag detected before starting, stopping")
+            return
+            
         await sampling_loop(
             model="claude-sonnet-4-20250514",
             provider=APIProvider.ANTHROPIC,
@@ -241,6 +292,12 @@ async def run_agent_loop(task_id: str):
             api_key=settings.anthropic_api_key,
             tool_version="computer_use_20250124",
         )
+        
+        # Check if task should be stopped after completion
+        if running_tasks.get(task_id, False):
+            print(f"Task {task_id} stop flag detected after completion, stopping")
+            return
+            
         print(f"Agent loop completed for task {task_id}")
         
         # Update task status to 'completed' when agent finishes
@@ -250,6 +307,14 @@ async def run_agent_loop(task_id: str):
             session.add(task)
             session.commit()
             print(f"Task {task_id} status updated to 'completed'")
+        
+        # Publish completion event
+        publish_task_event(task_id, {
+            "type": "completion",
+            "content": "Agent completed successfully",
+            "ordering": ordering if 'ordering' in locals() else 1,
+        })
+        print(f"Completion event published for task {task_id}")
         
     except Exception as e:
         print(f"Error in run_agent_loop for task {task_id}: {e}")
@@ -268,4 +333,8 @@ async def run_agent_loop(task_id: str):
             "ordering": ordering if 'ordering' in locals() else 1,
         })
     finally:
+        # Clean up: remove task from running tasks
+        if task_id in running_tasks:
+            del running_tasks[task_id]
+            print(f"Task {task_id} removed from running tasks")
         session.close()
