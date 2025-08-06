@@ -1,6 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlmodel import Session, select
-from uuid import UUID
+from uuid import UUID, uuid4
+from hashlib import sha256
+import shutil
+import os
+from datetime import datetime
 
 from backend.db import get_session, Media
 from backend.schemas import MediaCreate, MediaRead
@@ -8,9 +12,39 @@ from backend.schemas import MediaCreate, MediaRead
 router = APIRouter(prefix="/media", tags=["Media"])
 
 
-@router.post("/", response_model=MediaRead)
-def upload_media(data: MediaCreate, session: Session = Depends(get_session)):
-    media = Media(**data.dict())
+@router.post("/upload", response_model=MediaRead)
+def upload_media_file(
+    task_id: UUID = Form(...),
+    uploaded_by: str = Form(...),
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+):
+    # Save file locally
+    file_id = str(uuid4())
+    ext = os.path.splitext(file.filename)[1]
+    saved_path = f"uploads/{file_id}{ext}"
+
+    with open(saved_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Compute SHA256
+    with open(saved_path, "rb") as f:
+        file_bytes = f.read()
+        sha = sha256(file_bytes).hexdigest()
+
+    # Build public URL
+    url = f"/uploads/{file_id}{ext}"
+
+    # Create DB entry
+    media = Media(
+        task_id=task_id,
+        uploaded_by=uploaded_by,
+        filename=file.filename,
+        content_type=file.content_type,
+        url=url,
+        sha256=sha,
+        created_at=datetime.utcnow(),
+    )
     session.add(media)
     session.commit()
     session.refresh(media)

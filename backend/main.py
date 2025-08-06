@@ -1,8 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException
+import os
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from .db.database import init_db
 from backend.api.v1 import task, message, event, screenshot, media
 
 app = FastAPI()
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 app.include_router(task.router)
 app.include_router(message.router)
 app.include_router(event.router)

@@ -33,7 +33,7 @@ class Event(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     payload: dict = Field(sa_column=Column(JSONB))
 
-    session_id: UUID = Field(foreign_key="task.id")
+    task_id: UUID = Field(foreign_key="task.id")
     task: Task = Relationship(back_populates="events")
     screenshots: list["Screenshot"] = Relationship(back_populates="event")
 
@@ -56,5 +56,5 @@ class Media(SQLModel, table=True):
     sha256: str
     created_at: datetime = Field(default_factory=datetime.now)
 
-    session_id: UUID = Field(foreign_key="task.id")
+    task_id: UUID = Field(foreign_key="task.id")
     task: Task = Relationship(back_populates="media")
