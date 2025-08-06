@@ -1,36 +1,23 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# Build stage – compiles the Vite / React UI
-# ──────────────────────────────────────────────────────────────────────────────
-FROM node:20-bullseye AS builder
+# Development Dockerfile with hot reload
+FROM node:18-alpine
 
-# Create non-root user for reproducible builds
-RUN useradd -m appuser
-WORKDIR /home/appuser/app
+# Set working directory
+WORKDIR /app
 
-# Copy package files first
-COPY --chown=appuser:appuser package.json package-lock.json* ./
+# Install dependencies for development
+RUN apk add --no-cache git
 
-# Install dependencies and explicitly add the missing rollup native package
-RUN npm ci --omit=dev --force && \
-    npm install @rollup/rollup-linux-x64-gnu --platform=linux --arch=x64
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
 
 # Copy source code
-COPY --chown=appuser:appuser . .
+COPY . .
 
-# Build Vite production bundle
-RUN npm run build
+# Expose development port
+EXPOSE 5173
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Runtime stage – ultra-small static file server
-# ──────────────────────────────────────────────────────────────────────────────
-FROM nginx:1.27-alpine AS runtime
-
-# Copy compiled assets
-COPY --from=builder /home/appuser/app/dist /usr/share/nginx/html
-
-# Slim default NGINX config → single-page app routing
-RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/spa.conf
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Start development server with hot reload
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

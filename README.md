@@ -1,116 +1,174 @@
-# Computer Use Agent
-**Author: Mohamed Atta**  
-A scalable backend system for computer use agent session management, similar to OpenAI Operator. This project provides a FastAPI backend with real-time streaming, VNC integration, and a modern React frontend for managing AI-powered computer automation sessions.
+# Computer-Use-Agent
+
+A sophisticated AI-powered computer automation system that enables agents to interact with desktop environments through natural language commands. This project combines a FastAPI backend, React frontend, and Anthropic's Claude API to create an intelligent computer use agent.
 
 ## 🚀 Features
 
-- **Session Management**: Create and manage multiple AI agent sessions
-- **Real-time Streaming**: Server-Sent Events (SSE) for live progress updates
-- **VNC Integration**: Virtual desktop access via noVNC
-- **File Management**: Upload, download, and manage files within sessions
-- **Modern UI**: React-based frontend with real-time chat interface
-- **Docker Deployment**: Complete containerized setup for easy deployment
+- **AI-Powered Automation**: Uses Anthropic's Claude API for intelligent task execution
+- **Desktop Interaction**: Full mouse, keyboard, and screen control capabilities
+- **Real-time VNC**: Live desktop viewing and interaction through noVNC
+- **Task Management**: Create, manage, and track automation tasks
+- **File Management**: Upload, organize, and process files
+- **Real-time Communication**: WebSocket-based chat interface
+- **Screenshot Capture**: Automatic screenshot capture for task documentation
+- **Multi-modal Support**: Handle text, images, and file inputs
 
 ## 🏗️ Architecture
 
-### Backend (FastAPI)
-- **FastAPI**: Modern Python web framework for high-performance APIs
-- **Computer Use Demo**: Integration with Anthropic's computer use tools
-- **SQLite Database**: Session and message persistence
-- **VNC Server**: Virtual desktop environment with noVNC
-- **Real-time Streaming**: SSE for live message updates
+The Computer-Use-Agent follows a microservices architecture with three main components:
 
 ### Frontend (React + TypeScript)
-- **React 18**: Modern UI framework with hooks
-- **TypeScript**: Type-safe development
-- **Vite**: Fast build tool and dev server
-- **Tailwind CSS**: Utility-first CSS framework
-- **Shadcn/ui**: High-quality UI components
-- **React Query**: Server state management
+The user interface is built with React and TypeScript, featuring a VNC viewer for desktop interaction, a chat interface for communicating with the AI agent, file management capabilities, and task management tools.
+
+### Backend (FastAPI + Python)
+The backend provides a RESTful API built with FastAPI, handling tasks, messages, events, media uploads, streaming responses, agent control, and real-time WebSocket communication.
+
+### Agent System
+Powered by Anthropic's Claude API, the agent system includes computer interaction tools for mouse control, keyboard input, screenshot capture, bash command execution, and file editing operations.
 
 ### Infrastructure
-- **Docker**: Containerized deployment
-- **Nginx**: Static file serving and API proxying
-- **Xvfb**: Virtual framebuffer for headless desktop
-- **tint2**: Lightweight window manager
+The system runs on PostgreSQL for data persistence, with noVNC and X11VNC for remote desktop access, and Xvfb providing a virtual display server for the agent's desktop environment.
 
-## 🏗️ Project Structure
+## 🔍 Project Structure
 
 ```
 Computer-Use-Agent/
-├── backend/                    # FastAPI backend
-│   ├── app/                   # Application code
-│   │   ├── main.py           # FastAPI app and routes
-│   │   ├── compute_runner.py # Computer use session runner
-│   │   ├── db.py             # Database models and setup
-│   │   ├── schemas.py        # Pydantic schemas
-│   │   └── computer_use_demo/ # Anthropic computer use tools
-│   ├── image/                # VNC and desktop setup
-│   ├── requirements.txt      # Python dependencies
-│   └── Dockerfile           # Backend container
-├── frontend/                  # React frontend
-│   ├── src/                  # Source code
-│   │   ├── components/       # React components
-│   │   ├── pages/           # Page components
-│   │   ├── lib/             # Utilities and API client
-│   │   └── App.tsx          # Main app component
-│   ├── package.json         # Node.js dependencies
-│   └── Dockerfile           # Frontend container
-├── docker-compose.yml        # Service orchestration
-├── .env                      # Environment variables
-└── README.md                # This file
+├── backend/                 # FastAPI backend
+│   ├── api/                # API routes and endpoints
+│   ├── core/               # Core configuration
+│   ├── db/                 # Database models and connection
+│   ├── schemas/            # Pydantic schemas
+│   ├── services/           # Business logic services
+│   └── utils/              # Utility functions
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── services/       # API service layer
+│   │   └── types/          # TypeScript type definitions
+│   └── public/             # Static assets
+├── computer_use_demo/      # Agent implementation
+│   ├── tools/              # Computer interaction tools
+│   └── loop.py             # Main agent loop
+├── image/                  # Docker image configuration
+└── docker-compose.yml      # Multi-container setup
 ```
+
+## 📊 Database Schema
+
+```mermaid
+erDiagram
+    task {
+        UUID id PK
+        TEXT title
+        TEXT status
+        TIMESTAMPTZ created_at
+    }
+    message {
+        UUID id PK
+        UUID session_id FK
+        TEXT role
+        JSONB content
+        INT ordering
+        TIMESTAMPTZ created_at
+    }
+    event {
+        UUID id PK
+        UUID session_id FK
+        TEXT kind
+        JSONB payload
+        INT ordering
+        TIMESTAMPTZ created_at
+    }
+    screenshot {
+        UUID id PK
+        UUID event_id FK
+        TEXT url
+        TEXT sha256
+    }
+    media {
+        UUID id PK
+        UUID session_id FK
+        TEXT uploaded_by
+        TEXT filename
+        TEXT content_type
+        TEXT url
+        TEXT sha256
+        TIMESTAMPTZ created_at
+    }
+
+    task ||--o{ message      : has
+    task ||--o{ event        : has
+    task ||--o{ media  : includes
+    event   ||--o{ screenshot   : attaches
+```
+
+### Core Entities
+
+- **Task**: Represents an automation task with status tracking
+- **Message**: Chat messages between user and agent
+- **Event**: System events and actions performed by the agent
+- **Screenshot**: Captured screenshots for task documentation
+- **Media**: Uploaded files and media assets
 
 ## 📋 Prerequisites
 
-- Docker and Docker Compose
-- Anthropic API key (for AI functionality)
-- At least 4GB RAM (for VNC and desktop environment)
+- **Python 3.10+**
+- **Node.js 18+**
+- **Docker & Docker Compose**
+- **Anthropic API Key**
+- **PostgreSQL** (handled by Docker)
 
-## 🛠️ Installation & Setup
+## 🚀 Quick Start
 
 ### 1. Clone the Repository
+
 ```bash
 git clone <repository-url>
 cd Computer-Use-Agent
 ```
 
-### 2. Environment Configuration
+### 2. Environment Setup
+
 Create a `.env` file in the root directory:
-```bash
-# Required: Your Anthropic API key
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-# Optional: Claude model (default: claude-sonnet-4-20250514)
-CLAUDE_MODEL=claude-sonnet-4-20250514
+```env
+# Database Configuration
+DB_NAME=computer_use_agent
+DB_USER=postgres
+DB_PASS=your_password
+DB_PORT=5432
 
-# Optional: Display configuration
-DISPLAY_NUM=1
-WIDTH=1280
+# API Configuration
+ANTHROPIC_API_KEY=your_anthropic_api_key
+PRODUCTION=false
+
+# Display Configuration
+WIDTH=1024
 HEIGHT=768
+DISPLAY_NUM=1
 ```
 
-### 3. Build and Start Services
+### 3. Start with Docker Compose
+
 ```bash
-# Build all containers
-docker-compose build --no-cache
+# Build and start all services
+docker-compose up --build
 
-# Start all services
-docker-compose up -d
-
-# Monitor logs
-docker-compose logs -f
+# Or run in detached mode
+docker-compose up -d --build
 ```
 
 ### 4. Access the Application
-- **Frontend**: http://localhost:80
+
+- **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Direct VNC**: http://localhost:6080
+- **VNC Viewer**: http://localhost:6080
 
 ## 🔧 Development Setup
 
 ### Backend Development
+
 ```bash
 # Navigate to backend directory
 cd backend
@@ -123,10 +181,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Run development server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend Development
+
 ```bash
 # Navigate to frontend directory
 cd frontend
@@ -138,95 +197,101 @@ npm install
 npm run dev
 ```
 
-## 📡 API Endpoints
+### Database Setup
 
-### Session Management
-- `POST /api/sessions` - Create a new session
-- `GET /api/sessions` - List all sessions with message counts
+```bash
+# The database will be automatically initialized when the backend starts
+# You can also manually run migrations if needed
+```
 
-### Messaging
-- `POST /api/sessions/{session_id}/messages` - Send a message to a session
-- `GET /api/sessions/{session_id}/stream` - Stream real-time messages (SSE)
+## 📚 API Documentation
 
-### File Management
-- `POST /api/files/upload` - Upload a file to a session
-- `GET /api/files/{file_id}` - Download a file
-- `GET /api/files?session_id={session_id}` - List files in a session
-- `DELETE /api/files/{file_id}` - Delete a file
+### Core Endpoints
 
-### Health & Status
-- `GET /api/healthz` - Health check endpoint
+#### Tasks
+- `GET /api/v1/tasks` - List all tasks
+- `POST /api/v1/tasks` - Create a new task
+- `GET /api/v1/tasks/{task_id}` - Get task details
+- `DELETE /api/v1/tasks/{task_id}` - Delete a task
 
-### VNC
-- `WS /api/vnc` - WebSocket endpoint for VNC connection
+#### Messages
+- `GET /api/v1/messages/{task_id}` - Get messages for a task
+- `POST /api/v1/messages/{task_id}` - Send a message
 
-## 🎯 Usage
+#### Events
+- `GET /api/v1/events/{task_id}` - Get events for a task
+- `POST /api/v1/events/{task_id}` - Create an event
 
-### 1. Starting a New Session
-1. Open the application at http://localhost:80
-2. The system automatically creates a new session
-3. You'll see the chat interface and VNC panel
+#### Media
+- `POST /api/v1/media/{task_id}` - Upload media files
+- `GET /api/v1/media/{task_id}` - Get media for a task
 
-### 2. Interacting with the AI Agent
-1. Type your request in the chat input
-2. The AI agent will process your request and respond
-3. Real-time updates appear in the chat stream
-4. The agent can perform computer tasks in the virtual desktop
+#### Agent
+- `POST /api/v1/agent/start/{task_id}` - Start agent for a task
+- `POST /api/v1/agent/stop/{task_id}` - Stop agent
 
-### 3. File Management
-1. Use the file panel to upload files
-2. Files are associated with the current session
-3. Download or delete files as needed
+### WebSocket Events
 
-### 4. VNC Desktop Access
-1. The VNC panel shows the virtual desktop
-2. The AI agent can interact with the desktop environment
-3. You can also connect directly via http://localhost:6080
+- `task_update`: Real-time task status updates
+- `message_received`: New message notifications
+- `agent_response`: Agent response streaming
+- `screenshot_captured`: Screenshot capture events
 
-## 🔒 Security Considerations
+## 🎯 Usage Guide
 
-- **API Keys**: Store sensitive keys in environment variables
-- **File Uploads**: Implement file type and size validation
-- **VNC Access**: Consider authentication for VNC connections
-- **Database**: Use proper database security in production
+### Creating a Task
 
-## 🚀 Production Deployment
+1. Open the application in your browser
+2. Click "New Task" in the sidebar
+3. Enter a task description or select a prompt
+4. The agent will start processing your request
+
+### Interacting with the Agent
+
+1. **Text Commands**: Type natural language instructions
+2. **File Upload**: Drag and drop files for processing
+3. **Screenshots**: View real-time desktop screenshots
+4. **VNC Control**: Interact directly with the desktop
+
+### Example Tasks
+
+- "Open Firefox and search for the latest Python documentation"
+- "Create a new text file and write a simple Python script"
+- "Take a screenshot of the current desktop"
+- "Install and configure a new application"
+
+## 🚀 Deployment
+
+### Production Deployment
+
+1. **Environment Configuration**
+   ```bash
+   # Set production environment
+   export PRODUCTION=true
+   export ANTHROPIC_API_KEY=your_production_key
+   ```
+
+2. **Docker Production Build**
+   ```bash
+   docker-compose -f docker-compose.prod.yml up --build
+   ```
 
 ### Environment Variables
-```bash
-# Production environment variables
-ANTHROPIC_API_KEY=your_production_key
-CLAUDE_MODEL=claude-sonnet-4-20250514
-DATABASE_URL=postgresql://user:pass@host:port/db
-REDIS_URL=redis://host:port
-```
 
-### Reverse Proxy Setup
-```nginx
-# Example Nginx configuration
-server {
-    listen 80;
-    server_name your-domain.com;
-    
-    location / {
-        proxy_pass http://frontend:80;
-    }
-    
-    location /api/ {
-        proxy_pass http://backend:8000;
-    }
-    
-    location /vnc/ {
-        proxy_pass http://backend:6080;
-    }
-}
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_NAME` | Database name | `computer_use_agent` |
+| `DB_USER` | Database user | `postgres` |
+| `DB_PASS` | Database password | Required |
+| `DB_PORT` | Database port | `5432` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | Required |
+| `PRODUCTION` | Production mode | `false` |
+| `WIDTH` | Display width | `1024` |
+| `HEIGHT` | Display height | `768` |
 
-### Database Migration
-For production, consider migrating from SQLite to PostgreSQL:
-```bash
-# Update docker-compose.yml with PostgreSQL service
-# Update backend configuration for PostgreSQL
-# Run database migrations
-```
----
+## 🔗 Related Projects
+
+- [Anthropic Claude API](https://docs.anthropic.com/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [noVNC](https://novnc.com/)
+- [SQLModel](https://sqlmodel.tiangolo.com/)
