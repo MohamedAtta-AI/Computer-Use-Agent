@@ -8,7 +8,7 @@ class Task(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     title: str
     status: str = Field(default="active")
-    created_at: datetime = Field(default_factory=datetime.now())
+    created_at: datetime = Field(default_factory=datetime.now)
 
     messages: list["Message"] = Relationship(back_populates="task")
     events: list["Event"] = Relationship(back_populates="task")
@@ -20,7 +20,7 @@ class Message(SQLModel, table=True):
     role: str
     content: dict = Field(sa_column=Column(JSONB))
     ordering: int
-    created_at: datetime = Field(default_factory=datetime.now())
+    created_at: datetime = Field(default_factory=datetime.now)
 
     task_id: UUID = Field(foreign_key="task.id")
     task: Task = Relationship(back_populates="messages")
@@ -30,7 +30,7 @@ class Event(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     kind: str
     ordering: int
-    created_at: datetime = Field(default_factory=datetime.now())
+    created_at: datetime = Field(default_factory=datetime.now)
     payload: dict = Field(sa_column=Column(JSONB))
 
     session_id: UUID = Field(foreign_key="task.id")
@@ -54,7 +54,7 @@ class Media(SQLModel, table=True):
     content_type: str
     url: str
     sha256: str
-    created_at: datetime = Field(default_factory=datetime.now())
+    created_at: datetime = Field(default_factory=datetime.now)
 
     session_id: UUID = Field(foreign_key="task.id")
     task: Task = Relationship(back_populates="media")
