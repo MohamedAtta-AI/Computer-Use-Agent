@@ -199,11 +199,7 @@ npm run dev
 ```
 
 ### Database Setup
-
-```bash
-# The database will be automatically initialized when the backend starts
-# You can also manually run migrations if needed
-```
+The database will be automatically initialized when the backend starts
 
 ## 📚 API Documentation
 
