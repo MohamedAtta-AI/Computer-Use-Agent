@@ -2,7 +2,7 @@ from sqlmodel import SQLModel, Session, create_engine
 from backend.core.config import get_settings
 
 settings = get_settings()
-engine = create_engine(settings.db_url, echo=settings.production)
+engine = create_engine(settings.db_url, echo=(not settings.production))
 
 
 def init_db():
