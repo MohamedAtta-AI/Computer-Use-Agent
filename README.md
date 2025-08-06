@@ -1,4 +1,5 @@
 # Computer-Use-Agent
+**Author: Mohamed Atta**
 
 A sophisticated AI-powered computer automation system that enables agents to interact with desktop environments through natural language commands. This project combines a FastAPI backend, React frontend, and Anthropic's Claude API to create an intelligent computer use agent.
 
