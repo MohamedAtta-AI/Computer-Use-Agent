@@ -1,6 +1,6 @@
 # Computer-Use-Agent
 **Author: Mohamed Atta**  
-**Video Link: https://drive.google.com/file/d/1SJzsgeJbw1vvoxcoZXoKsEuWFRwPnihi/view?usp=sharing**  
+**Video Link: **  
 
 A sophisticated AI-powered computer automation system that enables agents to interact with desktop environments through natural language commands. This project combines a FastAPI backend, React frontend, and Anthropic's Claude API to create an intelligent computer use agent.
 
@@ -18,6 +18,9 @@ A sophisticated AI-powered computer automation system that enables agents to int
 ## 🏗️ Architecture
 
 The Computer-Use-Agent follows a microservices architecture with three main components:
+
+<img width="581" height="461" alt="computer_use_agent" src="https://github.com/user-attachments/assets/9953b6a7-1a67-4fce-9801-a8b41620486d" />
+
 
 ### Frontend (React + TypeScript)
 The user interface is built with React and TypeScript, featuring a VNC viewer for desktop interaction, a chat interface for communicating with the AI agent, file management capabilities, and task management tools.
@@ -157,122 +160,11 @@ DISPLAY_NUM=1
 # Build and start all services
 docker-compose up --build
 
-# Or run in detached mode
-docker-compose up -d --build
-```
-
 ### 4. Access the Application
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
 - **VNC Viewer**: http://localhost:6080
-
-## 🔧 Development Setup
-
-### Backend Development
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run development server
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Frontend Development
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-### Database Setup
-The database will be automatically initialized when the backend starts
-
-## 📚 API Documentation
-
-### Core Endpoints
-
-#### Tasks
-- `GET /api/v1/tasks` - List all tasks
-- `POST /api/v1/tasks` - Create a new task
-- `GET /api/v1/tasks/{task_id}` - Get task details
-- `DELETE /api/v1/tasks/{task_id}` - Delete a task
-
-#### Messages
-- `GET /api/v1/messages/{task_id}` - Get messages for a task
-- `POST /api/v1/messages/{task_id}` - Send a message
-
-#### Events
-- `GET /api/v1/events/{task_id}` - Get events for a task
-- `POST /api/v1/events/{task_id}` - Create an event
-
-#### Media
-- `POST /api/v1/media/{task_id}` - Upload media files
-- `GET /api/v1/media/{task_id}` - Get media for a task
-
-#### Agent
-- `POST /api/v1/agent/start/{task_id}` - Start agent for a task
-- `POST /api/v1/agent/stop/{task_id}` - Stop agent
-
-### WebSocket Events
-
-- `task_update`: Real-time task status updates
-- `message_received`: New message notifications
-- `agent_response`: Agent response streaming
-- `screenshot_captured`: Screenshot capture events
-
-## 🎯 Usage Guide
-
-### Creating a Task
-
-1. Open the application in your browser
-2. Click "New Task" in the sidebar
-3. Enter a task description or select a prompt
-4. The agent will start processing your request
-
-### Interacting with the Agent
-
-1. **Text Commands**: Type natural language instructions
-2. **File Upload**: Drag and drop files for processing
-3. **Screenshots**: View real-time desktop screenshots
-4. **VNC Control**: Interact directly with the desktop
-
-### Example Tasks
-
-- "Open Firefox and search for the latest Python documentation"
-- "Create a new text file and write a simple Python script"
-- "Take a screenshot of the current desktop"
-- "Install and configure a new application"
-
-## 🚀 Deployment
-
-### Production Deployment
-
-1. **Environment Configuration**
-   ```bash
-   # Set production environment
-   export PRODUCTION=true
-   export ANTHROPIC_API_KEY=your_production_key
-   ```
-
-2. **Docker Production Build**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up --build
-   ```
 
 ### Environment Variables
 
@@ -287,9 +179,10 @@ The database will be automatically initialized when the backend starts
 | `WIDTH` | Display width | `1024` |
 | `HEIGHT` | Display height | `768` |
 
-## 🔗 Related Projects
+## 🔗 Resources
 
 - [Anthropic Claude API](https://docs.anthropic.com/)
+- [Anthropic Computer Use Demo](https://github.com/anthropics/claude-quickstarts/tree/main/computer-use-demo)
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [noVNC](https://novnc.com/)
 - [SQLModel](https://sqlmodel.tiangolo.com/)
