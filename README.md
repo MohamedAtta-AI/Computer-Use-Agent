@@ -133,6 +133,7 @@ DISPLAY_NUM=1
 ```bash
 # Build and start all services
 docker-compose up --build
+```
 
 ### 4. Access the Application
 
