@@ -33,32 +33,7 @@ Powered by Anthropic's Claude API, the agent system includes computer interactio
 ### Infrastructure
 The system runs on PostgreSQL for data persistence, with noVNC and X11VNC for remote desktop access, and Xvfb providing a virtual display server for the agent's desktop environment.
 
-## 🔍 Project Structure
-
-```
-Computer-Use-Agent/
-├── backend/                 # FastAPI backend
-│   ├── api/                # API routes and endpoints
-│   ├── core/               # Core configuration
-│   ├── db/                 # Database models and connection
-│   ├── schemas/            # Pydantic schemas
-│   ├── services/           # Business logic services
-│   └── utils/              # Utility functions
-├── frontend/               # React frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── services/       # API service layer
-│   │   └── types/          # TypeScript type definitions
-│   └── public/             # Static assets
-├── computer_use_demo/      # Agent implementation
-│   ├── tools/              # Computer interaction tools
-│   └── loop.py             # Main agent loop
-├── image/                  # Docker image configuration
-└── docker-compose.yml      # Multi-container setup
-```
-
-## 📊 Database Schema
+## 🛢️ Database Schema
 
 ```mermaid
 erDiagram
