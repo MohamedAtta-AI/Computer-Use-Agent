@@ -1,7 +1,7 @@
-import React from 'react';
-import { ChatMessage } from './ChatMessage';
-import { ChatMessage as ChatMessageType } from '../../types';
-import { Send, MessageSquare, Square } from 'lucide-react';
+import React, { useRef, useEffect } from "react";
+import { ChatMessage } from "./ChatMessage";
+import { ChatMessage as ChatMessageType } from "../../types";
+import { Send, MessageSquare, Square } from "lucide-react";
 
 interface ChatSessionProps {
   messages: ChatMessageType[];
@@ -24,8 +24,18 @@ export const ChatSession: React.FC<ChatSessionProps> = ({
   loading = false,
   error = null,
   selectedTaskId = null,
-  agentRunning = false
+  agentRunning = false,
 }) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, loading, agentRunning]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() && !loading && !agentRunning) {
@@ -45,20 +55,27 @@ export const ChatSession: React.FC<ChatSessionProps> = ({
         <MessageSquare className="w-4 h-4 text-gray-500" />
         <h3 className="text-sm font-medium text-gray-700">Chat Session</h3>
         {selectedTaskId && (
-          <span className="text-xs text-gray-500">Task: {selectedTaskId.slice(0, 8)}...</span>
+          <span className="text-xs text-gray-500">
+            Task: {selectedTaskId.slice(0, 8)}...
+          </span>
         )}
         {agentRunning && (
-          <span className="text-xs text-blue-600 font-medium">Agent Running</span>
+          <span className="text-xs text-blue-600 font-medium">
+            Agent Running
+          </span>
         )}
       </div>
-      
+
       {error && (
         <div className="p-2 bg-red-50 border-b border-red-200">
           <p className="text-xs text-red-600">{error}</p>
         </div>
       )}
-      
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-3 space-y-2"
+      >
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
@@ -66,8 +83,11 @@ export const ChatSession: React.FC<ChatSessionProps> = ({
           <div className="text-sm text-gray-500 italic">Loading...</div>
         )}
         {agentRunning && (
-          <div className="text-sm text-blue-500 italic">Agent is working...</div>
+          <div className="text-sm text-blue-500 italic">
+            Agent is working...
+          </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200">
@@ -76,7 +96,9 @@ export const ChatSession: React.FC<ChatSessionProps> = ({
             type="text"
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
-            placeholder={agentRunning ? "Agent is running..." : "Type your message..."}
+            placeholder={
+              agentRunning ? "Agent is running..." : "Type your message..."
+            }
             disabled={loading || !selectedTaskId || agentRunning}
             className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
           />

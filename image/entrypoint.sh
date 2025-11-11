@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Change to home directory where scripts are located
+cd "$HOME"
+
 export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
 eval "$(pyenv init -)"

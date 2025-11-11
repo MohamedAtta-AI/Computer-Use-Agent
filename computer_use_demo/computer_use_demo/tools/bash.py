@@ -64,8 +64,24 @@ class _BashSession:
         assert self._process.stderr
 
         # send command to the process
+        # For background processes (with &), ensure stdin is redirected to prevent blocking
+        # Background processes that try to read from stdin can block the entire shell
+        if "&" in command and "< /dev/null" not in command:
+            # Wrap background command in subshell and redirect stdin
+            # This ensures the sentinel echo always executes even if background process blocks
+            command_stripped = command.strip()
+            if command_stripped.endswith("&"):
+                # Remove trailing &, wrap in subshell with stdin redirect, then add & back
+                cmd_without_amp = command_stripped[:-1].strip()
+                wrapped_command = f"({cmd_without_amp} < /dev/null &); echo '{self._sentinel}'"
+            else:
+                # & is in the middle somewhere, just wrap and redirect stdin
+                wrapped_command = f"({command} < /dev/null); echo '{self._sentinel}'"
+        else:
+            wrapped_command = f"{command}; echo '{self._sentinel}'"
+        
         self._process.stdin.write(
-            command.encode() + f"; echo '{self._sentinel}'\n".encode()
+            wrapped_command.encode() + "\n".encode()
         )
         await self._process.stdin.drain()
 

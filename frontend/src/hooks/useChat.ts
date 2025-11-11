@@ -130,10 +130,31 @@ export const useChat = (taskId?: string) => {
     switch (event.type) {
       case 'message':
         console.log('Processing message event, role:', event.role);
+        console.log('Event content:', event.content);
+        
+        // Preserve original content structure if it's an object/array, otherwise extract text
+        let messageContent: any;
+        if (typeof event.content === 'object' && event.content !== null) {
+          // Check if it's a tool_use block directly
+          if (event.content.type === 'tool_use') {
+            messageContent = event.content;
+          }
+          // Check if it's wrapped in {"text": ...}
+          else if (event.content.text !== undefined) {
+            messageContent = event.content.text;
+          }
+          // Otherwise preserve the structure
+          else {
+            messageContent = event.content;
+          }
+        } else {
+          messageContent = extractTextContent(event.content);
+        }
+        
         const message: ChatMessage = {
           id: Date.now().toString(),
           type: event.role === 'user' ? 'user' : 'assistant',
-          content: extractTextContent(event.content),
+          content: messageContent,
           timestamp: new Date().toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit' 

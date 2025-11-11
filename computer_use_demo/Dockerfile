@@ -94,11 +94,14 @@ RUN python -m pip install -r $HOME/computer_use_demo/requirements.txt
 COPY --chown=$USERNAME:$USERNAME image/ $HOME
 COPY --chown=$USERNAME:$USERNAME computer_use_demo/ $HOME/computer_use_demo/
 
+RUN chmod +x $HOME/.config/tint2/applications/*.desktop 2>/dev/null || true
+
 ARG DISPLAY_NUM=1
 ARG HEIGHT=768
 ARG WIDTH=1024
 ENV DISPLAY_NUM=$DISPLAY_NUM
 ENV HEIGHT=$HEIGHT
 ENV WIDTH=$WIDTH
+ENV MOZ_DISABLE_CONTENT_SANDBOX=1
 
 ENTRYPOINT [ "./entrypoint.sh" ]

@@ -116,7 +116,9 @@ COPY --chown=$USERNAME:$USERNAME image/                 $HOME/
 COPY --chown=$USERNAME:$USERNAME computer_use_demo/     $HOME/computer_use_demo/
 COPY --chown=$USERNAME:$USERNAME backend/               $HOME/backend/
 
-RUN chmod +x $HOME/entrypoint.sh
+# Fix line endings (CRLF to LF) for all shell scripts and make them executable
+RUN sed -i 's/\r$//' $HOME/*.sh && \
+    chmod +x $HOME/*.sh
 
 ARG DISPLAY_NUM=1
 ARG HEIGHT=768
@@ -127,4 +129,4 @@ ENV WIDTH=$WIDTH
 
 EXPOSE 8000 6080 5900
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT ["/bin/bash", "/home/computeruse/entrypoint.sh"]

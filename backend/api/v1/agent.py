@@ -4,11 +4,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 from uuid import UUID
 import asyncio
+import os
+import base64
 from pydantic import BaseModel
 
 from computer_use_demo import sampling_loop, APIProvider
 from backend.api.v1.stream import publish_task_event
-from backend.db import get_session, Task, Message, Event, Screenshot
+from backend.db import get_session, Task, Message, Event, Screenshot, Media
 from backend.utils import save_screenshot_and_return_url, compute_sha256
 
 router = APIRouter(prefix="/agent", tags=["Agent"])
@@ -135,8 +137,94 @@ async def run_agent_loop(task_id: str):
         # 1) Load any prior messages and convert them for Claude's input
         raw = session.exec(select(Message).where(Message.task_id == task_id).order_by(Message.ordering)).all()
         
+        # 2) Load media files for this task
+        media_files = session.exec(select(Media).where(Media.task_id == task_id).order_by(Media.created_at)).all()
+        
+        # Helper function to process media files into content blocks
+        def process_media_files(media_list):
+            """Convert media files to Claude API content blocks."""
+            content_blocks = []
+            file_references = []
+            
+            for media in media_list:
+                file_path = media.url.lstrip('/')  # Remove leading slash: /uploads/file -> uploads/file
+                
+                if not os.path.exists(file_path):
+                    print(f"Warning: Media file not found at {file_path}")
+                    continue
+                
+                # Determine file type from content_type or extension
+                content_type = media.content_type or ""
+                is_image = content_type.startswith("image/")
+                is_text = (
+                    content_type.startswith("text/") or
+                    content_type in ["application/json", "application/xml"] or
+                    media.filename.endswith(('.txt', '.md', '.py', '.js', '.json', '.xml', '.csv', '.log'))
+                )
+                
+                try:
+                    if is_image:
+                        # Convert image to base64
+                        with open(file_path, "rb") as f:
+                            image_data = f.read()
+                            base64_data = base64.b64encode(image_data).decode('utf-8')
+                            
+                            # Determine media type
+                            if content_type.startswith("image/"):
+                                media_type = content_type
+                            elif media.filename.endswith('.png'):
+                                media_type = "image/png"
+                            elif media.filename.endswith(('.jpg', '.jpeg')):
+                                media_type = "image/jpeg"
+                            elif media.filename.endswith('.gif'):
+                                media_type = "image/gif"
+                            elif media.filename.endswith('.webp'):
+                                media_type = "image/webp"
+                            else:
+                                media_type = "image/png"  # Default
+                            
+                            content_blocks.append({
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": base64_data
+                                }
+                            })
+                            file_references.append(f"Image: {media.filename}")
+                            print(f"Added image file to context: {media.filename}")
+                    
+                    elif is_text:
+                        # Read text file content
+                        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                            text_content = f.read()
+                        
+                        content_blocks.append({
+                            "type": "text",
+                            "text": f"File: {media.filename}\n\n{text_content}"
+                        })
+                        file_references.append(f"Text file: {media.filename}")
+                        print(f"Added text file to context: {media.filename}")
+                    
+                    else:
+                        # For other file types, just reference them
+                        file_references.append(f"File: {media.filename} (type: {content_type})")
+                        print(f"Referenced file (not included in context): {media.filename}")
+                
+                except Exception as e:
+                    print(f"Error processing media file {media.filename}: {e}")
+                    file_references.append(f"File: {media.filename} (error loading)")
+            
+            return content_blocks, file_references
+        
+        # Process media files
+        media_content_blocks, file_references = process_media_files(media_files)
+        
         # Convert database format to API format
         messages = []
+        first_user_message_processed = False
+        
+        # Add regular messages, merging files with first user message if available
         for m in raw:
             # Convert our database format to API format
             if isinstance(m.content, dict) and "text" in m.content:
@@ -149,10 +237,47 @@ async def run_agent_loop(task_id: str):
                 # Fallback: stringify the content
                 content = str(m.content)
             
+            # If this is the first user message and we have files, merge them
+            if m.role == "user" and not first_user_message_processed and media_content_blocks:
+                first_user_message_processed = True
+                # Merge files with the first user message
+                file_intro_text = "The following files have been uploaded for this task:\n" + "\n".join(f"- {ref}" for ref in file_references)
+                
+                # Create multi-modal content: intro + files + original message
+                merged_content = [{"type": "text", "text": file_intro_text}]
+                merged_content.extend(media_content_blocks)
+                
+                # Add the original user message text
+                if isinstance(content, str):
+                    merged_content.append({"type": "text", "text": content})
+                else:
+                    merged_content.append({"type": "text", "text": str(content)})
+                
+                messages.append({
+                    "role": m.role,
+                    "content": merged_content
+                })
+                print(f"Merged {len(media_content_blocks)} file content blocks with first user message")
+            else:
+                # Regular message
+                messages.append({
+                    "role": m.role,
+                    "content": content
+                })
+        
+        # If we have files but no user messages yet, add files as a separate message
+        if media_content_blocks and not first_user_message_processed:
+            file_intro_text = "The following files have been uploaded for this task:\n" + "\n".join(f"- {ref}" for ref in file_references)
+            
+            # Combine file intro with file content
+            file_message_content = [{"type": "text", "text": file_intro_text}]
+            file_message_content.extend(media_content_blocks)
+            
             messages.append({
-                "role": m.role,
-                "content": content
+                "role": "user",
+                "content": file_message_content
             })
+            print(f"Added {len(media_content_blocks)} file content blocks as initial message")
 
         # Start ordering where we left off
         ordering = max((m.ordering for m in raw), default=0) + 1
@@ -165,9 +290,35 @@ async def run_agent_loop(task_id: str):
                     print(f"Task {task_id} stop flag detected, stopping output")
                     return
                 
-                # Extract text content from the block
+                # Handle different block types
                 if isinstance(block, dict):
-                    if block.get("type") == "text":
+                    block_type = block.get("type")
+                    
+                    # Handle tool_use blocks - send as special event
+                    if block_type == "tool_use":
+                        # Store the tool_use block as-is in the message
+                        msg = Message(
+                            task_id=UUID(task_id),
+                            role="assistant",
+                            content=block,  # Store the full tool_use object
+                            ordering=ordering,
+                        )
+                        session.add(msg)
+                        session.commit()
+
+                        # Broadcast tool_use as a special message type
+                        publish_task_event(task_id, {
+                            "type": "message",
+                            "role": "assistant",
+                            "content": block,  # Send the full tool_use object
+                            "ordering": msg.ordering,
+                        })
+                        ordering += 1
+                        print(f"Tool use block saved with ordering {msg.ordering}: {block.get('name', 'unknown')}")
+                        return
+                    
+                    # Handle text blocks
+                    elif block_type == "text":
                         text_content = block.get("text", "")
                     else:
                         # For other block types, stringify the content

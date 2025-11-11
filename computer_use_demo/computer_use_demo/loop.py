@@ -59,8 +59,9 @@ else:
 SYSTEM_PROMPT = f"""<SYSTEM_CAPABILITY>
 * You are utilising an Ubuntu virtual machine using {platform.machine()} architecture with internet access.
 * You can feel free to install Ubuntu applications with your bash tool. Use curl instead of wget.
-* To open firefox, please just click on the firefox icon.  Note, firefox-esr is what is installed on your system.
-* Using bash tool you can start GUI applications, but you need to set export DISPLAY=:1 and use a subshell. For example "(DISPLAY=:1 xterm &)". GUI apps run with bash tool will appear within your desktop environment, but they may take some time to appear. Take a screenshot to confirm it did.
+* IMPORTANT: The taskbar shows launcher icons (shortcuts), NOT running applications. Just because you see a Firefox or Terminal icon in the taskbar does NOT mean those applications are currently running. You must launch them yourself using bash commands.
+* To open firefox, use the bash tool with: "DISPLAY=:1 setsid firefox-esr > /dev/null 2>&1 &" (setsid detaches from terminal). Wait a few seconds, then take a screenshot to verify it launched. Do NOT try to click on taskbar icons that may not be running.
+* Using bash tool you can start GUI applications, but you need to set DISPLAY=:1 and redirect output. For example "DISPLAY=:1 setsid xterm > /dev/null 2>&1 &". Always use setsid (or nohup) and redirect output when launching GUI apps in background. GUI apps will appear within your desktop environment, but they may take some time to appear. Take a screenshot to confirm it launched.
 * When using your bash tool with commands that are expected to output very large quantities of text, redirect into a tmp file and use str_replace_based_edit_tool or `grep -n -B <lines before> -A <lines after> <query> <filename>` to confirm output.
 * When viewing a page it can be helpful to zoom out so that you can see everything on the page.  Either that, or make sure you scroll down to see everything before deciding something isn't available.
 * When using your computer function calls, they take a while to run and send back to you.  Where possible/feasible, try to chain multiple of these calls all into one function calls request.

@@ -1,3 +1,4 @@
+#!/bin/bash
 echo "starting mutter"
 XDG_SESSION_TYPE=x11 mutter --replace --sm-disable 2>/tmp/mutter_stderr.log &
 
