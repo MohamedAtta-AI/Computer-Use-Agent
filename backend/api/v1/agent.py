@@ -6,6 +6,7 @@ from uuid import UUID
 import asyncio
 import os
 import base64
+import contextvars
 from pydantic import BaseModel
 
 from computer_use_demo import sampling_loop, APIProvider
@@ -18,8 +19,49 @@ router = APIRouter(prefix="/agent", tags=["Agent"])
 # Global variable to track running tasks and their stop flags
 running_tasks = {}
 
+# Context variable to track current task_id in tool execution
+current_task_id: contextvars.ContextVar[str | None] = contextvars.ContextVar('current_task_id', default=None)
+
 class MessageRequest(BaseModel):
     text: str
+
+def generate_task_title(message_text: str, max_length: int = 60) -> str:
+    """
+    Generate a concise, meaningful title from a user message.
+    Removes common prefixes and truncates to max_length.
+    """
+    # Remove leading/trailing whitespace
+    text = message_text.strip()
+    
+    # Remove common prefixes that don't add value to titles
+    prefixes_to_remove = [
+        "please", "can you", "could you", "i need", "i want", 
+        "help me", "i'd like", "i would like", "do", "make"
+    ]
+    text_lower = text.lower()
+    for prefix in prefixes_to_remove:
+        if text_lower.startswith(prefix + " "):
+            text = text[len(prefix):].strip()
+            # Capitalize first letter
+            if text:
+                text = text[0].upper() + text[1:]
+            break
+    
+    # If message is short enough, use it as-is (capitalize first letter)
+    if len(text) <= max_length:
+        if text:
+            return text[0].upper() + text[1:] if len(text) > 1 else text.upper()
+        return "New Task"
+    
+    # Truncate to max_length, trying to break at word boundary
+    truncated = text[:max_length]
+    last_space = truncated.rfind(' ')
+    if last_space > max_length * 0.7:  # If we can break at a reasonable word boundary
+        truncated = truncated[:last_space]
+    
+    # Add ellipsis if truncated
+    return truncated.rstrip() + "..."
+
 
 @router.post("/{task_id}/message", status_code=204)
 def post_user_message(
@@ -35,6 +77,12 @@ def post_user_message(
         if not task:
             raise HTTPException(404, "Task not found")
 
+        # Check if this is the first user message (for title generation)
+        existing_messages = session.exec(
+            select(Message).where(Message.task_id == task_id, Message.role == "user")
+        ).all()
+        is_first_message = len(existing_messages) == 0
+
         last_ordering = session.exec(
             select(Message.ordering).where(Message.task_id == task_id).order_by(Message.ordering.desc())
         ).first() or 0
@@ -46,6 +94,14 @@ def post_user_message(
             ordering=last_ordering + 1,
         )
         session.add(msg)
+        
+        # Update task title if this is the first message
+        if is_first_message:
+            new_title = generate_task_title(message.text)
+            if new_title and new_title != task.title:
+                task.title = new_title
+                print(f"Updated task {task_id} title to: {new_title}")
+        
         session.commit()
 
         print(f"Message saved with ordering {msg.ordering}")
@@ -59,9 +115,25 @@ def post_user_message(
         
         print(f"Task event published for task {task_id}")
         
+        task_id_str = str(task_id)
+        
+        # If there's already a running task, stop it first
+        if task_id_str in running_tasks:
+            print(f"Task {task_id_str} is already running, stopping it first")
+            running_tasks[task_id_str] = True  # Set stop flag
+            # Publish interruption event
+            publish_task_event(task_id_str, {
+                "type": "completion",
+                "content": "Agent interrupted by new message",
+                "ordering": 1,
+            })
+            print(f"Stop flag set for existing task {task_id_str}, starting new loop")
+            # The old loop will stop when it checks the flag in its callbacks
+            # Start the new loop - it will reset the stop flag to False
+        
         # Automatically start the agent loop to generate a response
         print(f"Starting agent loop for task {task_id}")
-        bg.add_task(run_agent_loop, str(task_id))
+        bg.add_task(run_agent_loop, task_id_str)
         
     except Exception as e:
         print(f"Error in post_user_message: {e}")
@@ -285,10 +357,10 @@ async def run_agent_loop(task_id: str):
         def output_callback(block):
             nonlocal ordering
             try:
-                # Check if task should be stopped
+                # Check if task should be stopped BEFORE processing any blocks
                 if running_tasks.get(task_id, False):
-                    print(f"Task {task_id} stop flag detected, stopping output")
-                    return
+                    print(f"Task {task_id} stop flag detected in output_callback, raising exception to stop loop")
+                    raise InterruptedError(f"Task {task_id} was stopped by user")
                 
                 # Handle different block types
                 if isinstance(block, dict):
@@ -296,6 +368,11 @@ async def run_agent_loop(task_id: str):
                     
                     # Handle tool_use blocks - send as special event
                     if block_type == "tool_use":
+                        # Check stop flag AGAIN before executing tool
+                        if running_tasks.get(task_id, False):
+                            print(f"Task {task_id} stop flag detected before tool execution, raising exception")
+                            raise InterruptedError(f"Task {task_id} was stopped by user before tool execution")
+                        
                         # Store the tool_use block as-is in the message
                         msg = Message(
                             task_id=UUID(task_id),
@@ -315,6 +392,11 @@ async def run_agent_loop(task_id: str):
                         })
                         ordering += 1
                         print(f"Tool use block saved with ordering {msg.ordering}: {block.get('name', 'unknown')}")
+                        
+                        # Final check before returning (tool will execute after this)
+                        if running_tasks.get(task_id, False):
+                            print(f"Task {task_id} stop flag detected after saving tool_use, raising exception")
+                            raise InterruptedError(f"Task {task_id} was stopped by user")
                         return
                     
                     # Handle text blocks
@@ -353,8 +435,8 @@ async def run_agent_loop(task_id: str):
             try:
                 # Check if task should be stopped
                 if running_tasks.get(task_id, False):
-                    print(f"Task {task_id} stop flag detected, stopping tool execution")
-                    return
+                    print(f"Task {task_id} stop flag detected, raising exception to stop loop")
+                    raise InterruptedError(f"Task {task_id} was stopped by user")
                 
                 # Update task status to 'running' when computer tools are used
                 task = session.get(Task, UUID(task_id))
@@ -430,23 +512,83 @@ async def run_agent_loop(task_id: str):
         # Check if task should be stopped before starting
         if running_tasks.get(task_id, False):
             print(f"Task {task_id} stop flag detected before starting, stopping")
+            # Clear the stop flag since we're not starting
+            running_tasks[task_id] = False
             return
+        
+        # Reset stop flag when starting a new loop
+        running_tasks[task_id] = False
+        
+        # Monkey-patch ToolCollection.run to check stop flag before tool execution
+        from computer_use_demo.computer_use_demo.tools.collection import ToolCollection
+        
+        # Store original run method (only patch once, use context var for task_id)
+        if not hasattr(ToolCollection, '_original_run'):
+            ToolCollection._original_run = ToolCollection.run
+        
+        # Create a wrapper that checks stop flag using context variable
+        async def interruptible_run(self, *, name: str, tool_input: dict):
+            # Get current task_id from context
+            ctx_task_id = current_task_id.get()
+            if ctx_task_id:
+                # Check stop flag BEFORE executing tool
+                if running_tasks.get(ctx_task_id, False):
+                    print(f"Task {ctx_task_id} stop flag detected before tool execution ({name}), raising exception")
+                    raise InterruptedError(f"Task {ctx_task_id} was stopped by user before tool execution")
             
-        await sampling_loop(
-            model="claude-sonnet-4-20250514",
-            provider=APIProvider.ANTHROPIC,
-            system_prompt_suffix="",
-            messages=messages,
-            output_callback=output_callback,
-            tool_output_callback=tool_output_callback,
-            api_response_callback=api_response_callback,
-            api_key=settings.anthropic_api_key,
-            tool_version="computer_use_20250124",
-        )
+            # Execute the tool using original method
+            result = await ToolCollection._original_run(self, name=name, tool_input=tool_input)
+            
+            # Check stop flag AFTER tool execution (in case it was set during execution)
+            if ctx_task_id and running_tasks.get(ctx_task_id, False):
+                print(f"Task {ctx_task_id} stop flag detected after tool execution ({name}), raising exception")
+                raise InterruptedError(f"Task {ctx_task_id} was stopped by user after tool execution")
+            
+            return result
+        
+        # Monkey-patch the class method (only if not already patched)
+        if ToolCollection.run == ToolCollection._original_run:
+            ToolCollection.run = interruptible_run
+        
+        # Set context variable for this task
+        token = current_task_id.set(task_id)
+        
+        try:
+            await sampling_loop(
+                model="claude-sonnet-4-20250514",
+                provider=APIProvider.ANTHROPIC,
+                system_prompt_suffix="",
+                messages=messages,
+                output_callback=output_callback,
+                tool_output_callback=tool_output_callback,
+                api_response_callback=api_response_callback,
+                api_key=settings.anthropic_api_key,
+                tool_version="computer_use_20250124",
+            )
+        except InterruptedError as e:
+            print(f"Task {task_id} was interrupted: {e}")
+            # Update task status to indicate it was stopped
+            task = session.get(Task, UUID(task_id))
+            if task:
+                task.status = 'stopped'
+                session.add(task)
+                session.commit()
+                print(f"Task {task_id} status updated to 'stopped'")
+            
+            # Publish stop event
+            publish_task_event(task_id, {
+                "type": "completion",
+                "content": "Agent stopped by user",
+                "ordering": ordering if 'ordering' in locals() else 1,
+            })
+            return  # Exit early, don't mark as completed
+        finally:
+            # Reset context variable
+            current_task_id.reset(token)
         
         # Check if task should be stopped after completion
         if running_tasks.get(task_id, False):
-            print(f"Task {task_id} stop flag detected after completion, stopping")
+            print(f"Task {task_id} stop flag detected after completion, was stopped")
             return
             
         print(f"Agent loop completed for task {task_id}")

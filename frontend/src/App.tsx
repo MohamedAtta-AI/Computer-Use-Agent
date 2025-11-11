@@ -25,13 +25,18 @@ function App() {
     messages, 
     inputValue, 
     setInputValue, 
-    sendMessage,
+    sendMessage: sendMessageOriginal,
     stopAgent,
     loading: chatLoading,
     error: chatError,
     agentRunning,
     refreshMessages
   } = useChat(selectedTaskId || undefined);
+
+  // Wrap sendMessage to refresh tasks after sending
+  const sendMessage = (content: string) => {
+    sendMessageOriginal(content, refreshTasks);
+  };
 
   const { 
     files, 
@@ -64,9 +69,22 @@ function App() {
     if (selectedTaskId) {
       sendMessage(prompt);
     } else {
-      // Create a new task with the prompt
+      // Generate a title from the prompt (truncate if too long)
+      const generateTitle = (text: string, maxLength: number = 50) => {
+        const cleaned = text.trim();
+        if (cleaned.length <= maxLength) {
+          return cleaned;
+        }
+        const truncated = cleaned.substring(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        return lastSpace > maxLength * 0.7 
+          ? truncated.substring(0, lastSpace) + '...'
+          : truncated + '...';
+      };
+      
+      // Create a new task with a title generated from the prompt
       addTask({
-        title: 'Task from Prompt',
+        title: generateTitle(prompt),
         description: prompt,
         timestamp: 'just now'
       }).then(newTask => {

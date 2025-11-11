@@ -66,7 +66,7 @@ export const useChat = (taskId?: string) => {
   }, [taskId]);
 
   // Send message and start agent
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, onTaskUpdate?: () => void) => {
     if (!taskId || !content.trim() || loading) return;
 
     try {
@@ -95,6 +95,14 @@ export const useChat = (taskId?: string) => {
 
       // Send to backend AFTER establishing connections
       await agentAPI.postMessage(taskId, { text: content });
+
+      // Refresh task list after a short delay to get updated title
+      // The backend updates the title when the first message is sent
+      if (onTaskUpdate) {
+        setTimeout(() => {
+          onTaskUpdate();
+        }, 500); // Small delay to allow backend to process
+      }
 
     } catch (err) {
       setError('Failed to send message');

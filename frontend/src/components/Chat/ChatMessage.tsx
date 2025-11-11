@@ -1,11 +1,12 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
 import { ChatMessage as ChatMessageType } from "../../types";
-import { 
-  User, 
-  Bot, 
-  MousePointer2, 
-  Terminal, 
-  FileEdit, 
+import {
+  User,
+  Bot,
+  MousePointer2,
+  Terminal,
+  FileEdit,
   Camera,
   Monitor,
   MousePointerClick,
@@ -15,7 +16,7 @@ import {
   Key,
   Clock,
   Hand,
-  Command
+  Command,
 } from "lucide-react";
 
 interface ChatMessageProps {
@@ -36,7 +37,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         return {
           icon: Bot,
           bgColor: "bg-gray-50",
-          textColor: "text-gray-900",
+          textColor: "text-gray-800",
           label: "Assistant",
         };
       case "function_call":
@@ -104,11 +105,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const getToolConfig = (toolName: string, action?: string) => {
     const normalizedName = toolName.toLowerCase();
     const normalizedAction = action?.toLowerCase() || "";
-    
+
     // ===== COMPUTER TOOL ACTIONS =====
-    
+
     // Screenshot
-    if (normalizedAction === "screenshot" || normalizedAction.includes("screenshot")) {
+    if (
+      normalizedAction === "screenshot" ||
+      normalizedAction.includes("screenshot")
+    ) {
       return {
         icon: Camera,
         bgColor: "bg-indigo-50",
@@ -118,19 +122,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Screenshot",
       };
     }
-    
+
     // Click actions - different icons for different click types
-    if (normalizedAction === "left_click" || normalizedAction === "double_click" || normalizedAction === "triple_click") {
+    if (
+      normalizedAction === "left_click" ||
+      normalizedAction === "double_click" ||
+      normalizedAction === "triple_click"
+    ) {
       return {
         icon: MousePointerClick,
         bgColor: "bg-blue-50",
         textColor: "text-blue-900",
         borderColor: "border-blue-300",
         iconColor: "text-blue-600",
-        label: normalizedAction === "double_click" ? "Double Click" : normalizedAction === "triple_click" ? "Triple Click" : "Left Click",
+        label:
+          normalizedAction === "double_click"
+            ? "Double Click"
+            : normalizedAction === "triple_click"
+            ? "Triple Click"
+            : "Left Click",
       };
     }
-    
+
     if (normalizedAction === "right_click") {
       return {
         icon: MousePointerClick,
@@ -141,7 +154,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Right Click",
       };
     }
-    
+
     if (normalizedAction === "middle_click") {
       return {
         icon: MousePointerClick,
@@ -152,8 +165,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Middle Click",
       };
     }
-    
-    if (normalizedAction.includes("click") || normalizedAction.includes("mouse_down") || normalizedAction.includes("mouse_up")) {
+
+    if (
+      normalizedAction.includes("click") ||
+      normalizedAction.includes("mouse_down") ||
+      normalizedAction.includes("mouse_up")
+    ) {
       return {
         icon: MousePointerClick,
         bgColor: "bg-cyan-50",
@@ -163,9 +180,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Click",
       };
     }
-    
+
     // Mouse movement
-    if (normalizedAction === "mouse_move" || normalizedAction.includes("move")) {
+    if (
+      normalizedAction === "mouse_move" ||
+      normalizedAction.includes("move")
+    ) {
       return {
         icon: Move,
         bgColor: "bg-teal-50",
@@ -175,7 +195,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Move Mouse",
       };
     }
-    
+
     // Drag
     if (normalizedAction.includes("drag")) {
       return {
@@ -187,7 +207,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Drag",
       };
     }
-    
+
     // Scroll
     if (normalizedAction === "scroll" || normalizedAction.includes("scroll")) {
       return {
@@ -199,7 +219,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Scroll",
       };
     }
-    
+
     // Type/Keyboard input
     if (normalizedAction === "type" || normalizedAction.includes("type")) {
       return {
@@ -211,7 +231,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Type",
       };
     }
-    
+
     // Key press
     if (normalizedAction === "key" || normalizedAction === "hold_key") {
       return {
@@ -223,7 +243,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: normalizedAction === "hold_key" ? "Hold Key" : "Key Press",
       };
     }
-    
+
     // Wait
     if (normalizedAction === "wait") {
       return {
@@ -235,9 +255,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Wait",
       };
     }
-    
+
     // Cursor position
-    if (normalizedAction === "cursor_position" || normalizedAction.includes("cursor")) {
+    if (
+      normalizedAction === "cursor_position" ||
+      normalizedAction.includes("cursor")
+    ) {
       return {
         icon: MousePointer2,
         bgColor: "bg-lime-50",
@@ -247,9 +270,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         label: "Cursor Position",
       };
     }
-    
+
     // ===== TOOL TYPES =====
-    
+
     if (normalizedName === "computer") {
       return {
         icon: Monitor,
@@ -268,7 +291,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         iconColor: "text-emerald-600",
         label: "Bash Command",
       };
-    } else if (normalizedName.includes("edit") || normalizedName.includes("str_replace")) {
+    } else if (
+      normalizedName.includes("edit") ||
+      normalizedName.includes("str_replace")
+    ) {
       return {
         icon: FileEdit,
         bgColor: "bg-violet-50",
@@ -367,13 +393,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 
       if (toolUseData.input) {
         const input = toolUseData.input;
-        
+
         // For computer tool actions
         if (toolName === "computer") {
           if (input.action) {
             // Format action descriptions
-            if (input.action === "left_click" || input.action === "right_click") {
-              actionDescription = input.action === "left_click" ? "Left Click" : "Right Click";
+            if (
+              input.action === "left_click" ||
+              input.action === "right_click"
+            ) {
+              actionDescription =
+                input.action === "left_click" ? "Left Click" : "Right Click";
               if (input.coordinate && Array.isArray(input.coordinate)) {
                 toolInput = `(${input.coordinate[0]}, ${input.coordinate[1]})`;
               }
@@ -381,7 +411,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
               actionDescription = "Type";
               if (input.text) {
                 const preview = input.text.substring(0, 30);
-                toolInput = `"${preview}${input.text.length > 30 ? "..." : ""}"`;
+                toolInput = `"${preview}${
+                  input.text.length > 30 ? "..." : ""
+                }"`;
               }
             } else if (input.action === "key") {
               actionDescription = "Key Press";
@@ -428,7 +460,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         }
       }
 
-      return { toolName: formattedToolName, rawToolName: toolName, toolInput, actionDescription };
+      return {
+        toolName: formattedToolName,
+        rawToolName: toolName,
+        toolInput,
+        actionDescription,
+      };
     }
 
     if (message.type === "event" && message.kind) {
@@ -444,8 +481,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           // For computer tool actions
           if (toolName === "computer" || toolName.includes("computer")) {
             if (input.action) {
-              if (input.action === "left_click" || input.action === "right_click") {
-                actionDescription = input.action === "left_click" ? "Left Click" : "Right Click";
+              if (
+                input.action === "left_click" ||
+                input.action === "right_click"
+              ) {
+                actionDescription =
+                  input.action === "left_click" ? "Left Click" : "Right Click";
                 if (input.coordinate && Array.isArray(input.coordinate)) {
                   toolInput = `(${input.coordinate[0]}, ${input.coordinate[1]})`;
                 } else if (input.x !== undefined && input.y !== undefined) {
@@ -455,7 +496,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                 actionDescription = "Type";
                 if (input.text) {
                   const preview = input.text.substring(0, 30);
-                  toolInput = `"${preview}${input.text.length > 30 ? "..." : ""}"`;
+                  toolInput = `"${preview}${
+                    input.text.length > 30 ? "..." : ""
+                  }"`;
                 }
               } else if (input.action === "key") {
                 actionDescription = "Key Press";
@@ -504,15 +547,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         }
       }
 
-      return { toolName: formattedToolName, rawToolName: toolName, toolInput, actionDescription };
+      return {
+        toolName: formattedToolName,
+        rawToolName: toolName,
+        toolInput,
+        actionDescription,
+      };
     }
 
     if (message.type === "function_call" && message.functionName) {
-      return { 
-        toolName: formatToolName(message.functionName), 
+      return {
+        toolName: formatToolName(message.functionName),
         rawToolName: message.functionName,
         toolInput: "",
-        actionDescription: ""
+        actionDescription: "",
       };
     }
 
@@ -533,12 +581,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     // Use raw tool name if available, otherwise try to extract from message
     let actualToolName = toolInfo.rawToolName || "";
     let actionDescription = toolInfo.actionDescription || "";
-    
+
     // Fallback: check message content or event kind
     if (!actualToolName) {
       if (message.type === "event" && message.kind) {
         actualToolName = message.kind;
-      } else if (message.type === "assistant" && typeof message.content === "object" && message.content !== null) {
+      } else if (
+        message.type === "assistant" &&
+        typeof message.content === "object" &&
+        message.content !== null
+      ) {
         if (message.content.type === "tool_use" && message.content.name) {
           actualToolName = message.content.name;
           // Extract action from input if available
@@ -546,7 +598,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             actionDescription = message.content.input.action;
           }
         } else if (Array.isArray(message.content)) {
-          const toolUseBlock = message.content.find((block: any) => block && block.type === "tool_use");
+          const toolUseBlock = message.content.find(
+            (block: any) => block && block.type === "tool_use"
+          );
           if (toolUseBlock && toolUseBlock.name) {
             actualToolName = toolUseBlock.name;
             if (toolUseBlock.input && toolUseBlock.input.action) {
@@ -556,7 +610,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         }
       }
     }
-    
+
     toolConfig = getToolConfig(actualToolName, actionDescription);
   }
 
@@ -581,8 +635,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         <div className="flex-shrink-0">
           <Icon
             className={`w-5 h-5 ${
-              isToolMessage && toolConfig 
-                ? toolConfig.iconColor 
+              isToolMessage && toolConfig
+                ? toolConfig.iconColor
                 : "text-gray-500"
             } mt-0.5`}
           />
@@ -601,14 +655,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold ${config.textColor}`}>
+                    <span
+                      className={`text-xs font-semibold ${config.textColor}`}
+                    >
                       {toolInfo.actionDescription || toolInfo.toolName}
                     </span>
-                    {toolInfo.actionDescription && toolInfo.toolName !== toolInfo.actionDescription && (
-                      <span className={`text-xs opacity-70 ${config.textColor}`}>
-                        {toolInfo.toolName}
-                      </span>
-                    )}
+                    {toolInfo.actionDescription &&
+                      toolInfo.toolName !== toolInfo.actionDescription && (
+                        <span
+                          className={`text-xs opacity-70 ${config.textColor}`}
+                        >
+                          {toolInfo.toolName}
+                        </span>
+                      )}
                   </div>
                   <span className={`text-xs opacity-60 ${config.textColor}`}>
                     {message.timestamp}
@@ -616,7 +675,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                 </div>
                 {toolInfo.toolInput && (
                   <div className="mt-1.5">
-                    <p className={`text-xs font-mono bg-white/50 px-2 py-1 rounded border ${config.textColor} ${config.borderColor || 'border-gray-300'}`}>
+                    <p
+                      className={`text-xs font-mono bg-white/50 px-2 py-1 rounded border ${
+                        config.textColor
+                      } ${config.borderColor || "border-gray-300"}`}
+                    >
                       {toolInfo.toolInput}
                     </p>
                   </div>
@@ -645,7 +708,85 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                 />
               </div>
             ) : (
-              <p>{messageText}</p>
+              <div className="break-words leading-relaxed text-base">
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => (
+                      <p className="mb-2 last:mb-0">{children}</p>
+                    ),
+                    h1: ({ children }) => (
+                      <h1 className="text-2xl font-bold mb-2 mt-4 first:mt-0">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-xl font-bold mb-2 mt-4 first:mt-0">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-lg font-bold mb-2 mt-4 first:mt-0">
+                        {children}
+                      </h3>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc list-inside mb-2 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal list-inside mb-2 space-y-1">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => <li className="ml-2">{children}</li>,
+                    code: ({ children, className }) => {
+                      const isInline = !className;
+                      if (isInline) {
+                        return (
+                          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800">
+                            {children}
+                          </code>
+                        );
+                      }
+                      // For code blocks (with className), render as block
+                      return (
+                        <code className="block bg-gray-100 p-3 rounded text-sm font-mono overflow-x-auto mb-2 text-gray-800 whitespace-pre">
+                          {children}
+                        </code>
+                      );
+                    },
+                    pre: ({ children }) => (
+                      <pre className="bg-gray-100 p-3 rounded text-sm font-mono overflow-x-auto mb-2 text-gray-800 whitespace-pre">
+                        {children}
+                      </pre>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2">
+                        {children}
+                      </blockquote>
+                    ),
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        className="text-blue-600 hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-bold">{children}</strong>
+                    ),
+                    em: ({ children }) => (
+                      <em className="italic">{children}</em>
+                    ),
+                  }}
+                >
+                  {messageText}
+                </ReactMarkdown>
+              </div>
             )}
           </div>
         </div>
