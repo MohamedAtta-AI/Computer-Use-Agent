@@ -50,7 +50,7 @@ export const ChatSession: React.FC<ChatSessionProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-96">
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="flex items-center space-x-2 p-3 border-b border-gray-200">
         <MessageSquare className="w-4 h-4 text-gray-500" />
         <h3 className="text-sm font-medium text-gray-700">Chat Session</h3>

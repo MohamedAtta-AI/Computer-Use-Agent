@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { FileItem } from './FileItem';
 import { UploadDropzone } from './UploadDropzone';
 import { FileItem as FileItemType } from '../../types';
-import { FolderOpen } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 interface FileManagementProps {
   files: FileItemType[];
@@ -48,10 +47,10 @@ export const FileManagement: React.FC<FileManagementProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-80">
-      <div className="flex items-center space-x-2 p-3 border-b border-gray-200">
-        <FolderOpen className="w-4 h-4 text-gray-500" />
-        <h3 className="text-sm font-medium text-gray-700">File Management</h3>
+    <div className="flex flex-col">
+      <div className="flex items-center space-x-2 p-2 border-b border-gray-200">
+        <Upload className="w-4 h-4 text-gray-500" />
+        <h3 className="text-sm font-medium text-gray-700">File Upload</h3>
         {selectedTaskId && (
           <span className="text-xs text-gray-500">Task: {selectedTaskId.slice(0, 8)}...</span>
         )}
@@ -62,18 +61,9 @@ export const FileManagement: React.FC<FileManagementProps> = ({
           <p className="text-xs text-red-600">{error}</p>
         </div>
       )}
-      
-      <div className="flex-1 overflow-y-auto p-3 space-y-1">
-        {files.map((file) => (
-          <FileItem key={file.id} file={file} onClick={onFileClick} />
-        ))}
-        {uploading && (
-          <div className="text-sm text-gray-500 italic">Uploading...</div>
-        )}
-      </div>
 
       <div
-        className={`m-3 ${isDragOver ? 'border-blue-400 bg-blue-50' : ''} ${!selectedTaskId ? 'opacity-50' : ''}`}
+        className={`p-2 ${isDragOver ? 'border-blue-400 bg-blue-50' : ''} ${!selectedTaskId ? 'opacity-50' : ''}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
