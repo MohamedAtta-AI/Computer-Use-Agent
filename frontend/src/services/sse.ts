@@ -1,3 +1,5 @@
+import { config } from '../config';
+
 export interface SSEEvent {
   type: string;
   [key: string]: any;
@@ -29,7 +31,7 @@ class SSEService {
 
     return new Promise((resolve, reject) => {
       try {
-        const eventSource = new EventSource(`http://localhost:8000/tasks/${taskId}/stream`);
+        const eventSource = new EventSource(`${config.apiUrl}/tasks/${taskId}/stream`);
         this.eventSources.set(taskId, eventSource);
 
         eventSource.onopen = () => {

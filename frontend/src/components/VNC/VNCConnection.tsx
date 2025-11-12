@@ -1,4 +1,5 @@
 import React from 'react';
+import { config } from '../../config';
 
 interface VNCConnectionProps {
   isConnected?: boolean;
@@ -24,7 +25,7 @@ export const VNCConnection: React.FC<VNCConnectionProps> = ({
       {/* VNC Display Area */}
       <div className="flex-1 relative">
         <iframe
-          src="http://localhost:6080/vnc.html?view_only=1&autoconnect=1&resize=scale"
+          src={`${config.vncUrl}/vnc.html?view_only=1&autoconnect=1&resize=scale`}
           className="w-full h-full border-none"
           allow="fullscreen"
           title="VNC Connection"

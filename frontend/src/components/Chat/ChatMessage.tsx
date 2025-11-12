@@ -1,6 +1,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import { ChatMessage as ChatMessageType } from "../../types";
+import { config } from "../../config";
 import {
   User,
   Bot,
@@ -701,7 +702,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                   </span>
                 </div>
                 <img
-                  src={`http://localhost:8000${message.url}`}
+                  src={`${config.apiUrl}${message.url}`}
                   alt="Screenshot"
                   className="mt-2 max-w-full h-auto rounded border"
                   style={{ maxHeight: "200px" }}

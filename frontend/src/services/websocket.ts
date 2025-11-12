@@ -1,3 +1,5 @@
+import { config } from '../config';
+
 export interface WebSocketMessage {
   type: string;
   [key: string]: any;
@@ -37,7 +39,9 @@ class WebSocketService {
 
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(`ws://localhost:8000/ws/${this.clientId}`);
+        // Convert http:// to ws:// or https:// to wss://
+        const wsUrl = config.wsUrl.replace(/^http/, 'ws');
+        this.ws = new WebSocket(`${wsUrl}/ws/${this.clientId}`);
 
         this.ws.onopen = () => {
           console.log('WebSocket connected');

@@ -7,13 +7,15 @@ from backend.api.v1 import (
     task, message, event, screenshot, media, stream, agent
 )
 from backend.api.websockets import router as websocket_router
+from backend.core.config import get_settings
 
 app = FastAPI()
+settings = get_settings()
 
 # CORS configuration for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite dev server
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
