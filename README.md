@@ -2,10 +2,13 @@
 
 A full-stack, AI-powered computer-automation system that allows agents to control a desktop environment using natural language. This project integrates a FastAPI backend, a React-based interface, and extends the capabilities of [Anthropic's Computer Use demo](https://github.com/anthropics/claude-quickstarts/tree/main/computer-use-demo) to deliver a robust, dockerized Operator-style experience.
 
-## 🎥 Showcase Video
+<img width="1916" height="992" alt="image" src="https://github.com/user-attachments/assets/a769c2ef-7a25-44bc-addb-6be15f3a5c91" />
+
+
+## [🎥 Showcase Video](https://drive.google.com/file/d/1H3g5NCUtYiri_bmVBJpvOBaB2Nh2yUHd/view?usp=sharing)
 
 **Link:** 
-
+https://drive.google.com/file/d/1H3g5NCUtYiri_bmVBJpvOBaB2Nh2yUHd/view?usp=sharing
 
 
 ## 🚀 Features
